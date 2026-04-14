@@ -1,0 +1,14 @@
+/* Dark theme specific overrides */
+/* As regras aqui devem ser prefixadas com :root.dark para garantir que afetem apenas o modo escuro */
+
+:root.dark .grid-ops-header-th,
+:root.dark .grid-ops-thead {
+  background-color: #2C864C !important;
+}
+
+:root.dark table tbody tr:hover td {
+  background-color: #4ADE80 !important;
+  background-image: none !important;
+  color: #0f172a !important;
+}
+

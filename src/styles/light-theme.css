@@ -1,0 +1,433 @@
+/* Light theme specific overrides generated from visual editor */
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) {
+  background-color: #004415 !important;
+}
+
+/* Specific classes for theme restoration */
+:root:not(.dark) .btn-designar,
+:root:not(.dark) .btn-action-menu,
+:root:not(.dark) .btn-confirm-delay,
+:root:not(.dark) .btn-confirm-remove,
+:root:not(.dark) .btn-confirm-flight {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  border-bottom: none !important;
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2) !important;
+  border-radius: 8px !important;
+}
+
+:root:not(.dark) .btn-designar:hover,
+:root:not(.dark) .btn-action-menu:hover,
+:root:not(.dark) .btn-confirm-delay:hover,
+:root:not(.dark) .btn-confirm-remove:hover,
+:root:not(.dark) .btn-confirm-flight:hover {
+  background-color: #6366f1 !important;
+}
+
+:root:not(.dark) .btn-designar:active,
+:root:not(.dark) .btn-action-menu:active,
+:root:not(.dark) .btn-confirm-delay:active,
+:root:not(.dark) .btn-confirm-remove:active,
+:root:not(.dark) .btn-confirm-flight:active {
+  transform: scale(0.95) !important;
+}
+
+:root:not(.dark) .btn-create-flight-icon {
+  color: #312C75 !important;
+}
+
+:root:not(.dark) .btn-create-flight-text {
+  color: #515151 !important;
+}
+
+:root:not(.dark) .btn-edit-params {
+  color: #515151 !important;
+}
+
+:root:not(.dark) .user-icon-header {
+  color: #00da08 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > aside:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
+  background-color: #268200 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  background-color: #268200 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1) {
+  background-color: #FEDC00 !important;
+  border-color: #FEDC00 !important;
+  color: #312C86 !important; /* Azul escuro para contraste perfeito com o amarelo */
+  font-weight: 700 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1):hover {
+  background-color: #e5c600 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > button:nth-of-type(1) {
+  background-color: #FEDC00 !important;
+  border-color: #FEDC00 !important;
+  color: #312C86 !important; /* Azul escuro para contraste perfeito com o amarelo */
+  font-weight: 700 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > button:nth-of-type(1):hover {
+  background-color: #e5c600 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1) > svg:nth-of-type(1) {
+  border-color: #FEDC00 !important;
+  color: #FEDC00 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(2) > svg:nth-of-type(1) {
+  color: #FEDC00 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > h1:nth-of-type(1) {
+  color: #00D492 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > p:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > h2:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > h1:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > table:nth-of-type(1) > thead:nth-of-type(1) > tr:nth-of-type(1) > th:nth-of-type(1) {
+  background-color: #2C864C !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > table:nth-of-type(1) > thead:nth-of-type(1) > tr:nth-of-type(1) > th:nth-of-type(2) {
+  background-color: #2C864C !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(2) {
+  color: #00D486 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(2) {
+  color: #00D486 !important;
+  font-size: 18px !important;
+  line-height: 28px !important;
+}
+
+/* Generic rule for all table headers in the system */
+:root:not(.dark) table thead {
+  background-color: #2C864C !important;
+}
+
+:root:not(.dark) table thead tr {
+  /* Removed sticky from tr to prevent conflicts */
+}
+
+:root:not(.dark) table thead th {
+  background-color: #2C864C !important; /* Verde tom Emerald 200 */
+  background-image: none !important; /* Remove gradientes que cobrem a cor */
+  color: #ffffff !important; /* Changed to white for contrast */
+  font-weight: 800 !important;
+  border-bottom: 2px solid #4ade80 !important; /* Borda verde Emerald 400 */
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+}
+
+/* Specific overrides for GridOps table to ensure it stays fixed */
+:root:not(.dark) .grid-ops-thead {
+  background-color: #2C864C !important;
+}
+
+:root:not(.dark) .grid-ops-header-th {
+  background-color: #2C864C !important;
+  background-image: none !important;
+  color: #ffffff !important; /* Changed to white for contrast */
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 110 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+:root:not(.dark) .grid-ops-header-th span,
+:root:not(.dark) .grid-ops-header-th div {
+  color: #ffffff !important; /* Changed to white for contrast */
+}
+
+:root:not(.dark) .grid-ops-table thead th:hover {
+  background-color: #86efac !important; /* Emerald 300 */
+}
+
+:root:not(.dark) .grid-ops-table thead th:hover span {
+  color: #065f46 !important;
+}
+
+/* Fundo da área de conteúdo principal para criar profundidade (efeito card na tabela) */
+:root:not(.dark) main {
+  background-color: #F4F7F6 !important;
+}
+
+/* Cor do texto e bordas das linhas da tabela */
+:root:not(.dark) table tbody tr td {
+  color: #334155 !important; /* Cinza chumbo, mais elegante que preto puro */
+  border-bottom-color: #e2e8f0 !important;
+}
+
+:root:not(.dark) table tbody tr:hover td {
+  background-color: #4ADE80 !important; /* Emerald 400 */
+  background-image: none !important;
+  color: #0f172a !important;
+}
+
+/* Specific selector provided by the user */
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > table:nth-of-type(1) > thead:nth-of-type(1) > tr:nth-of-type(1) > th:nth-of-type(3) {
+  background-color: #2C864C !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  display: none !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > h1:nth-of-type(1) {
+  display: none !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  box-shadow: none !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(1) > svg:nth-of-type(1) {
+  color: #ffe700 !important;
+}
+
+/* Botões de ação dentro da tabela (ex: DESIGNAR) */
+:root:not(.dark) table tbody tr td button {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #312C86 !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+:root:not(.dark) table tbody tr td button:hover {
+  background-color: #F4F7F6 !important;
+  border-color: #312C86 !important;
+}
+
+/* Estilos para Abas de Tabela (Hover/Ativo) */
+:root:not(.dark) .table-tab-btn {
+  background-color: #ffffff !important;
+  color: #475569 !important; /* Slate 600 */
+  border-color: #e2e8f0 !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+:root:not(.dark) .table-tab-btn:hover,
+:root:not(.dark) .table-tab-btn:focus {
+  background-color: #e4e4e4 !important; /* Cinza claro atualizado */
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+:root:not(.dark) .table-tab-btn[data-active="true"] {
+  background-color: #2c864c !important;
+  color: #ffffff !important;
+  border-color: #2c864c !important;
+}
+
+/* Span (badges) inside table tabs */
+:root:not(.dark) .table-tab-btn span {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+}
+
+:root:not(.dark) .table-tab-btn[data-active="true"] span {
+  background-color: #ffffff !important;
+  color: #2c864c !important;
+}
+
+/* SVG icons inside table tabs */
+:root:not(.dark) .table-tab-btn svg {
+  color: #64748b !important;
+}
+
+:root:not(.dark) .table-tab-btn[data-active="true"] svg {
+  color: #ffffff !important;
+}
+
+/* Estilos para a Sidebar (Menu Lateral) */
+:root:not(.dark) aside nav button.sidebar-nav-btn {
+  background-color: #417181 !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) aside nav button.sidebar-nav-btn svg,
+:root:not(.dark) aside nav button.sidebar-nav-btn span {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) aside nav button.sidebar-nav-btn:hover {
+  background-color: #FEDC00 !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) aside nav button.sidebar-nav-btn[data-active="true"] {
+  background-color: #ffffff !important;
+  color: #004415 !important;
+}
+
+:root:not(.dark) aside nav button.sidebar-nav-btn:hover svg,
+:root:not(.dark) aside nav button.sidebar-nav-btn:hover span {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+:root:not(.dark) aside nav button.sidebar-nav-btn[data-active="true"] svg,
+:root:not(.dark) aside nav button.sidebar-nav-btn[data-active="true"] span {
+  color: #004415 !important;
+  opacity: 1 !important;
+}
+
+/* Badges de Status (Crítico, Aguardando, Finalizado) */
+:root:not(.dark) .bg-red-500\/20,
+:root:not(.dark) .bg-red-500\/10 {
+  background-color: #fee2e2 !important; /* red-100 */
+}
+:root:not(.dark) .text-red-500,
+:root:not(.dark) .text-red-400 {
+  color: #b91c1c !important; /* red-700 */
+}
+:root:not(.dark) .border-red-500,
+:root:not(.dark) .border-red-500\/30 {
+  border-color: #fca5a5 !important; /* red-300 */
+}
+
+:root:not(.dark) .bg-amber-500\/20,
+:root:not(.dark) .bg-amber-500\/10 {
+  background-color: #fef3c7 !important; /* amber-100 */
+}
+:root:not(.dark) .text-amber-500,
+:root:not(.dark) .text-amber-400 {
+  color: #b45309 !important; /* amber-700 */
+}
+:root:not(.dark) .border-amber-500,
+:root:not(.dark) .border-amber-500\/30 {
+  border-color: #fcd34d !important; /* amber-300 */
+}
+
+:root:not(.dark) .bg-emerald-500\/20,
+:root:not(.dark) .bg-emerald-500\/10 {
+  background-color: #d1fae5 !important; /* emerald-100 */
+}
+:root:not(.dark) .text-emerald-500,
+:root:not(.dark) .text-emerald-400,
+:root:not(.dark) .text-emerald-300 {
+  color: #047857 !important; /* emerald-700 */
+}
+:root:not(.dark) .border-emerald-500,
+:root:not(.dark) .border-emerald-500\/30 {
+  border-color: #6ee7b7 !important; /* emerald-300 */
+}
+
+/* Tipografia e Alinhamento do Cabeçalho */
+:root:not(.dark) header h1 {
+  color: #00D486 !important; /* Verde Terciário */
+  font-weight: 900 !important;
+  letter-spacing: 0.05em !important;
+}
+:root:not(.dark) header .text-emerald-400 {
+  color: #00D486 !important;
+}
+:root:not(.dark) header .text-slate-400 {
+  color: #e2e8f0 !important; /* Texto mais claro para labels no fundo verde escuro */
+}
+
+/* Bordas e Divisórias */
+:root:not(.dark) .border-slate-800,
+:root:not(.dark) .border-slate-700 {
+  border-color: #e2e8f0 !important;
+}
+
+/* User Requested Styles for Subheader and Sidebar */
+:root:not(.dark) .btn-options-subheader {
+  background-color: #FEDC00 !important;
+  border-color: #FEDC00 !important;
+  color: #312C86 !important; /* Azul escuro para contraste perfeito com o amarelo */
+  font-weight: 700 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+:root:not(.dark) .btn-options-subheader:hover {
+  background-color: #e5c600 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div#subheader-portal-target:nth-of-type(1) > div:nth-of-type(1) {
+  background-color: #268200 !important;
+  border-style: solid !important;
+  border-width: 0px !important;
+  border-radius: 0px !important;
+  padding-left: 24px !important;
+  border-color: #268200 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div#subheader-portal-target:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h2:nth-of-type(1) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div#subheader-portal-target:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(1) {
+  border-color: #ffffff !important;
+  color: #4e4141 !important;
+  border-width: 1px !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div#subheader-portal-target:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1) {
+  background-color: #FEDC00 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > aside:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > nav:nth-of-type(1) {
+  background-color: #268200 !important;
+}
+
+:root:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) {
+  border-style: none !important;
+}
