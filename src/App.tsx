@@ -8,6 +8,7 @@ import { ShiftOperatorsSection } from './components/ShiftOperatorsSection';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, query, orderBy, doc, setDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { handleFirestoreError, OperationType } from './lib/firestoreErrorHandler';
 
 const GridOps = lazy(() => import('./components/GridOps').then(m => ({ default: m.GridOps })));
 
@@ -65,13 +66,15 @@ const App: React.FC = () => {
       setGlobalFlights(flights);
       setIsLoading(false);
     }, (error) => {
-      console.error("Erro ao carregar voos:", error);
+      handleFirestoreError(error, OperationType.LIST, 'flights');
       setIsLoading(false);
     });
 
     const unsubOperators = onSnapshot(collection(db, 'operators'), (snapshot) => {
       const operators = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as OperatorProfile));
       setGlobalOperators(operators);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'operators');
     });
 
     return () => {
@@ -82,38 +85,52 @@ const App: React.FC = () => {
 
   // Funções de Persistência
   const persistFlight = async (flight: Partial<FlightData>) => {
-    if (!flight.id) {
-      await addDoc(collection(db, 'flights'), { ...flight, createdAt: serverTimestamp() });
-    } else {
-      const { id, ...data } = flight;
-      // Usamos setDoc com merge: true para evitar erro de "documento não encontrado" 
-      // caso o ID tenha sido gerado localmente ou o documento tenha sido removido.
-      await setDoc(doc(db, 'flights', id), data, { merge: true });
+    try {
+      if (!flight.id) {
+        await addDoc(collection(db, 'flights'), { ...flight, createdAt: serverTimestamp() });
+      } else {
+        const { id, ...data } = flight;
+        await setDoc(doc(db, 'flights', id), data, { merge: true });
+      }
+    } catch (error) {
+      handleFirestoreError(error, flight.id ? OperationType.UPDATE : OperationType.CREATE, `flights/${flight.id || ''}`);
     }
   };
 
   const persistOperator = async (operator: Partial<OperatorProfile>) => {
-    if (!operator.id) {
-      await addDoc(collection(db, 'operators'), { ...operator, createdAt: serverTimestamp() });
-    } else {
-      const { id, ...data } = operator;
-      await setDoc(doc(db, 'operators', id), data, { merge: true });
+    try {
+      if (!operator.id) {
+        await addDoc(collection(db, 'operators'), { ...operator, createdAt: serverTimestamp() });
+      } else {
+        const { id, ...data } = operator;
+        await setDoc(doc(db, 'operators', id), data, { merge: true });
+      }
+    } catch (error) {
+      handleFirestoreError(error, operator.id ? OperationType.UPDATE : OperationType.CREATE, `operators/${operator.id || ''}`);
     }
   };
 
   const removeOperator = async (id: string) => {
-    await deleteDoc(doc(db, 'operators', id));
+    try {
+      await deleteDoc(doc(db, 'operators', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `operators/${id}`);
+    }
   };
 
   const finalizeFlight = async (flight: FlightData) => {
-    // 1. Salvar na coleção de finalizados (Caixa Preta)
-    await addDoc(collection(db, 'finalized_flights'), {
-      flightId: flight.id,
-      flightData: flight,
-      finalizedAt: serverTimestamp()
-    });
-    // 2. Remover da malha ativa
-    await deleteDoc(doc(db, 'flights', flight.id));
+    try {
+      // 1. Salvar na coleção de finalizados (Caixa Preta)
+      await addDoc(collection(db, 'finalized_flights'), {
+        flightId: flight.id,
+        flightData: flight,
+        finalizedAt: serverTimestamp()
+      });
+      // 2. Remover da malha ativa
+      await deleteDoc(doc(db, 'flights', flight.id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `finalized_flights/${flight.id}`);
+    }
   };
 
   const { isDarkMode, toggleDarkMode } = useTheme();

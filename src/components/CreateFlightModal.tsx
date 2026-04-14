@@ -44,7 +44,7 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
 
   const handleCreate = () => {
     // Basic validation
-    if (!formData.registration || !formData.airlineCode || !formData.departureFlightNumber || !formData.etd) return;
+    if (!formData.registration || !formData.airlineCode || !formData.departureFlightNumber || !formData.etd || !formData.flightNumber) return;
 
     const airlineCode = formData.airlineCode.toUpperCase() === 'G3' ? 'RG' : formData.airlineCode.toUpperCase();
     const airlineName = airlineCode === 'RG' ? 'GOL' : (airlineCode === 'LA' ? 'LATAM' : (airlineCode === 'AD' ? 'AZUL' : 'OUTRA'));

@@ -219,8 +219,8 @@ export const GridOps: React.FC<GridOpsProps> = ({
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
 
-  const handleCreateFlight = (newFlight: FlightData) => {
-    onUpdateFlights(newFlight);
+  const handleCreateFlight = async (newFlight: Partial<FlightData>) => {
+    await onUpdateFlights(newFlight);
     addToast('VOO CRIADO', `Voo ${newFlight.flightNumber} criado com sucesso.`, 'success');
     setIsCreateModalOpen(false);
   };
@@ -1491,7 +1491,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
         <FlightDetailsModal 
           flight={selectedFlight} 
           onClose={() => setSelectedFlight(null)} 
-          onUpdate={(updatedFlight) => onUpdateFlights(prev => prev.map(f => f.id === updatedFlight.id ? updatedFlight : f))}
+          onUpdate={(updatedFlight) => onUpdateFlights(updatedFlight)}
           vehicles={vehicles}
           operators={operators}
           onOpenAssignSupport={(flight) => setAssignSupportModalFlight(flight)}

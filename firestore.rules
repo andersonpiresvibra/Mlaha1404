@@ -26,19 +26,29 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "anderson.hpires@gmail.com" && request.auth.token.email_verified == true));
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          request.auth.token.email == "anderson.hpires@gmail.com" && request.auth.token.email_verified == true
+        );
     }
 
     function isValidFlight(data) {
       return data.flightNumber is string && data.flightNumber.size() > 0 && data.flightNumber.size() < 20 &&
-             data.airline is string && data.airline.size() > 0 &&
-             data.status in ['CHEGADA', 'FILA', 'DESIGNADO', 'AGUARDANDO', 'ABASTECENDO', 'FINALIZADO', 'CANCELADO'];
+             data.airline is string && data.airline.size() > 0 && data.airline.size() < 50 &&
+             data.status in ['CHEGADA', 'FILA', 'DESIGNADO', 'AGUARDANDO', 'ABASTECENDO', 'FINALIZADO', 'CANCELADO'] &&
+             (!('registration' in data) || (data.registration is string && data.registration.size() < 20)) &&
+             (!('model' in data) || (data.model is string && data.model.size() < 20)) &&
+             (!('origin' in data) || (data.origin is string && data.origin.size() < 10)) &&
+             (!('destination' in data) || (data.destination is string && data.destination.size() < 10)) &&
+             (!('observations' in data) || (data.observations is string && data.observations.size() < 1000)) &&
+             (!('delayJustification' in data) || (data.delayJustification is string && data.delayJustification.size() < 500));
     }
 
     function isValidOperator(data) {
-      return data.warName is string && data.warName.size() > 0 &&
-             data.status in ['DISPONÍVEL', 'OCUPADO', 'INTERVALO', 'DESCONECTADO', 'ENCHIMENTO', 'DESIGNADO'];
+      return data.warName is string && data.warName.size() > 0 && data.warName.size() < 50 &&
+             data.status in ['DISPONÍVEL', 'OCUPADO', 'INTERVALO', 'DESCONECTADO', 'ENCHIMENTO', 'DESIGNADO'] &&
+             (!('fullName' in data) || (data.fullName is string && data.fullName.size() < 100)) &&
+             (!('assignedVehicle' in data) || (data.assignedVehicle is string && data.assignedVehicle.size() < 20));
     }
 
     // ===============================================================
