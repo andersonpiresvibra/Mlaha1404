@@ -80,5 +80,15 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow write: if isAdmin();
     }
+
+    match /airlines/{airlineId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /aircraft_database/{aircraftId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
   }
 }

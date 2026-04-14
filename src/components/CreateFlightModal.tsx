@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plane, Calendar, Clock, MapPin, Hash, Tag, Globe } from 'lucide-react';
-import { FlightData, FlightStatus, FlightLog } from '../types';
+import { FlightData, FlightStatus, FlightLog, Airline, AircraftDatabaseEntry } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
-
-const GOL_PREFIXOS = [
-  "PR-GEA", "PR-GEC", "PR-GED", "PR-GEH", "PR-GEI", "PR-GEJ", "PR-GEK", "PR-GEQ", "PR-GIH", "PR-GOQ", "PR-GOR", "PR-VBQ",
-  "PR-GGE", "PR-GGF", "PR-GGH", "PR-GGL", "PR-GGM", "PR-GGP", "PR-GGQ", "PR-GGR", "PR-GGX", "PR-GKA", "PR-GKB", "PR-GKC", "PR-GKD", "PR-GKE", "PR-GTC", "PR-GTE", "PR-GTG", "PR-GTH", "PR-GTL", "PR-GTM", "PR-GUB", "PR-GUC", "PR-GUE", "PR-GUF", "PR-GUH", "PR-GUI", "PR-GUJ", "PR-GUK", "PR-GUL", "PR-GUM", "PR-GUN", "PR-GUP", "PR-GUR", "PR-GUT", "PR-GUU", "PR-GUV", "PR-GUX", "PR-GUY", "PR-GUZ", "PR-GXA", "PR-GXB", "PR-GXC", "PR-GXD", "PR-GXE", "PR-GXH", "PR-GXI", "PR-GXJ", "PR-GXL", "PR-GXM", "PR-GXN", "PR-GXP", "PR-GXQ", "PR-GXR", "PR-GXT", "PR-GXU", "PR-GXV", "PR-GXW", "PR-GXX", "PR-GYA", "PR-GYD", "PR-GZH", "PR-GZI", "PR-GZS", "PR-GZU", "PR-GZV", "PR-VBF", "PR-VBG", "PR-VBK", "PS-GFA", "PS-GFB", "PS-GFC", "PS-GFD", "PS-GFE", "PS-GFF", "PS-GFG", "PS-GFH", "PS-GFI", "PR-XMA", "PR-XMB", "PR-XMC", "PR-XMD", "PR-XME", "PR-XMF", "PR-XMG", "PR-XMH", "PR-XMI", "PR-XMJ", "PR-XMK", "PR-XML", "PR-XMM", "PR-XMN", "PR-XMO", "PR-XMP", "PR-XMQ", "PR-XMR", "PR-XMS", "PR-XMT", "PR-XMU", "PR-XMV", "PR-XMW", "PR-XMX", "PR-XMY", "PR-XMZ", "PS-GOL", "PS-GPA", "PS-GPB", "PS-GPC", "PS-GPD", "PS-GPE", "PS-GPF", "PS-GPG", "PS-GPH", "PS-GPI", "PS-GPJ", "PS-GPK", "PS-GPL", "PS-GPM", "PS-GPN", "PS-GPO", "PS-GPP", "PS-GPQ", "PS-GPR", "PS-GRA", "PS-GRB", "PS-GRC", "PS-GRD", "PS-GRE", "PS-GRF", "PS-GRG", "PS-GRH", "PS-GRI", "PS-GRJ", "PS-GRK", "PS-GRL", "PS-GRO", "PS-GRQ", "PS-GRR", "PS-GRS", "PS-GRT", "PS-GRU", "PS-GRV", "PS-GRW", "PS-GRY", "PS-GRZ"
-];
-
-const GOL_MODELOS = ["B737-7", "B737-8"];
 
 const createNewLog = (type: FlightLog['type'], message: string, author: string): FlightLog => ({
     id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
@@ -21,9 +14,11 @@ const createNewLog = (type: FlightLog['type'], message: string, author: string):
 interface CreateFlightModalProps {
   onClose: () => void;
   onCreate: (flight: Partial<FlightData>) => Promise<void>;
+  airlines: Airline[];
+  aircraftDb: AircraftDatabaseEntry[];
 }
 
-export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, onCreate }) => {
+export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, onCreate, airlines, aircraftDb }) => {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     airlineCode: '',
@@ -46,12 +41,14 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
     // Basic validation
     if (!formData.registration || !formData.airlineCode || !formData.departureFlightNumber || !formData.etd || !formData.flightNumber) return;
 
-    const airlineCode = formData.airlineCode.toUpperCase() === 'G3' ? 'RG' : formData.airlineCode.toUpperCase();
-    const airlineName = airlineCode === 'RG' ? 'GOL' : (airlineCode === 'LA' ? 'LATAM' : (airlineCode === 'AD' ? 'AZUL' : 'OUTRA'));
+    const airlineCode = formData.airlineCode.toUpperCase();
+    const airline = airlines.find(a => a.iata === airlineCode || a.icao === airlineCode || a.name.toUpperCase() === airlineCode);
+    const airlineName = airline ? airline.name : 'OUTRA';
+    const finalAirlineCode = airline ? airline.iata : airlineCode;
 
     const newFlight: Partial<FlightData> = {
       airline: airlineName,
-      airlineCode: airlineCode,
+      airlineCode: finalAirlineCode,
       registration: formData.registration.toUpperCase(),
       model: formData.model.toUpperCase(),
       flightNumber: formData.flightNumber.toUpperCase(),
@@ -131,6 +128,7 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
                   value={formData.airlineCode}
                   onChange={handleChange}
                   placeholder="RG"
+                  list="airlines-list"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 uppercase placeholder:text-slate-300 transition-all"
                   required
                 />
@@ -291,15 +289,25 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
           </div>
 
           {/* Datalists for suggestions */}
-          <datalist id="prefixos-list">
-            {['GOL', 'RG', 'G3'].includes(formData.airlineCode.toUpperCase()) && GOL_PREFIXOS.map(prefix => (
-              <option key={prefix} value={prefix} />
+          <datalist id="airlines-list">
+            {airlines.map(a => (
+              <option key={a.id} value={a.iata}>{a.name}</option>
             ))}
           </datalist>
+          <datalist id="prefixos-list">
+            {aircraftDb
+              .filter(a => !formData.airlineCode || a.airlineIata === formData.airlineCode.toUpperCase())
+              .map(a => (
+                <option key={a.id} value={a.registration}>{a.model}</option>
+              ))}
+          </datalist>
           <datalist id="modelos-list">
-            {['GOL', 'RG', 'G3'].includes(formData.airlineCode.toUpperCase()) && GOL_MODELOS.map(model => (
-              <option key={model} value={model} />
-            ))}
+            {Array.from(new Set(aircraftDb
+              .filter(a => !formData.airlineCode || a.airlineIata === formData.airlineCode.toUpperCase())
+              .map(a => a.model)))
+              .map(model => (
+                <option key={model} value={model} />
+              ))}
           </datalist>
 
           {isPriority() && (

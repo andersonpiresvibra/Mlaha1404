@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { ViewState, FlightData, Vehicle, OperatorProfile } from './types';
+import { ViewState, FlightData, Vehicle, OperatorProfile, Airline, AircraftDatabaseEntry } from './types';
 import { DashboardHeader } from './components/DashboardHeader';
 import { Spinner } from './components/ui/Spinner';
 import { useTheme } from './contexts/ThemeContext';
@@ -20,6 +20,8 @@ const App: React.FC = () => {
   const [globalFlights, setGlobalFlights] = useState<FlightData[]>([]);
   const [globalVehicles, setGlobalVehicles] = useState<Vehicle[]>([]);
   const [globalOperators, setGlobalOperators] = useState<OperatorProfile[]>([]);
+  const [globalAirlines, setGlobalAirlines] = useState<Airline[]>([]);
+  const [globalAircraftDb, setGlobalAircraftDb] = useState<AircraftDatabaseEntry[]>([]);
   const [meshFlights, setMeshFlights] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -77,9 +79,61 @@ const App: React.FC = () => {
       handleFirestoreError(error, OperationType.LIST, 'operators');
     });
 
+    const unsubAirlines = onSnapshot(collection(db, 'airlines'), (snapshot) => {
+      const airlines = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Airline));
+      setGlobalAirlines(airlines);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'airlines');
+    });
+
+    const unsubAircraftDb = onSnapshot(collection(db, 'aircraft_database'), (snapshot) => {
+      const aircraft = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as AircraftDatabaseEntry));
+      setGlobalAircraftDb(aircraft);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'aircraft_database');
+    });
+
+    // Seeding inicial se estiver vazio (apenas para demonstração)
+    const seedInitialData = async () => {
+      // Usamos um flag no localStorage para não tentar seedar toda vez que o app carrega se o onSnapshot demorar
+      if (localStorage.getItem('jetfuel_seeded')) return;
+
+      // Esperar um pouco para o onSnapshot carregar
+      setTimeout(async () => {
+        if (globalAirlines.length === 0) {
+          const initialAirlines = [
+            { name: 'GOL', iata: 'G3', icao: 'GLO' },
+            { name: 'LATAM', iata: 'LA', icao: 'TAM' },
+            { name: 'AZUL', iata: 'AD', icao: 'AZU' },
+            { name: 'TAP', iata: 'TP', icao: 'TAP' }
+          ];
+          for (const a of initialAirlines) {
+            await addDoc(collection(db, 'airlines'), a);
+          }
+        }
+        
+        if (globalAircraftDb.length === 0) {
+          const initialAircraft = [
+            { registration: 'PR-XMA', model: 'B737-8', airlineIata: 'G3' },
+            { registration: 'PR-XMB', model: 'B737-8', airlineIata: 'G3' },
+            { registration: 'PT-MZA', model: 'A320', airlineIata: 'LA' },
+            { registration: 'PR-YRA', model: 'A320neo', airlineIata: 'AD' }
+          ];
+          for (const a of initialAircraft) {
+            await addDoc(collection(db, 'aircraft_database'), a);
+          }
+        }
+        localStorage.setItem('jetfuel_seeded', 'true');
+      }, 5000);
+    };
+    
+    seedInitialData();
+
     return () => {
       unsubFlights();
       unsubOperators();
+      unsubAirlines();
+      unsubAircraftDb();
     };
   }, [user]);
 
@@ -275,6 +329,8 @@ const App: React.FC = () => {
                     onUpdateFlights={persistFlight} 
                     vehicles={globalVehicles}
                     operators={globalOperators}
+                    airlines={globalAirlines}
+                    aircraftDb={globalAircraftDb}
                     initialTab={gridOpsInitialTab}
                     globalSearchTerm={globalSearchTerm}
                     meshFlights={meshFlights}

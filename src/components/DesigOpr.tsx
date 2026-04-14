@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { OperatorProfile, FlightData, Vehicle } from '../types';
 import { UserPlus, AlertTriangle, X, Check, User, Clock, Briefcase } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -18,7 +19,19 @@ type Tab = 'TODOS' | 'SRV' | 'CTA';
 export const DesigOpr: React.FC<DesigOprProps> = ({ isOpen, onClose, flight, vehicle, operators, onConfirm, onOpenOperators }) => {
     const { isDarkMode } = useTheme();
     const [selectedOperatorId, setSelectedOperatorId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<Tab>('TODOS');
+    const [activeTab, setActiveTab] = useState<'SRV' | 'CTA'>('SRV');
+
+    // Auto-select tab and reset state when opening
+    useEffect(() => {
+        if (isOpen) {
+            if (flight?.positionType) {
+                setActiveTab(flight.positionType === 'CTA' ? 'CTA' : 'SRV');
+            } else {
+                setActiveTab('SRV');
+            }
+            setSelectedOperatorId(null);
+        }
+    }, [isOpen, flight?.positionType]);
 
     const handleConfirm = () => {
         if (selectedOperatorId) {
@@ -31,14 +44,6 @@ export const DesigOpr: React.FC<DesigOprProps> = ({ isOpen, onClose, flight, veh
         setSelectedOperatorId(null);
         onClose();
     };
-
-    // Reset tab when opening
-    useEffect(() => {
-        if (isOpen) {
-            setActiveTab('TODOS');
-            setSelectedOperatorId(null);
-        }
-    }, [isOpen]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,7 +65,6 @@ export const DesigOpr: React.FC<DesigOprProps> = ({ isOpen, onClose, flight, veh
 
     const categorizedOperators = useMemo(() => {
         return {
-            TODOS: availableOperators,
             SRV: availableOperators.filter(op => op.fleetCapability === 'SRV'),
             CTA: availableOperators.filter(op => op.fleetCapability === 'CTA'),
         };
@@ -206,73 +210,78 @@ const OperatorImage = ({ op, isSelected, isDisabled }: { op: OperatorProfile, is
                     </button>
                 </div>
 
-                {/* LISTA DE OPERADORES - DUAS LISTAS (SRV E CTA) */}
-                <div className="flex-1 p-6 min-h-[400px] max-h-[600px] overflow-y-auto custom-scrollbar bg-white space-y-6">
-                    {/* SEÇÃO SRV */}
-                    <div>
-                        <div className="flex items-center justify-between mb-3 border-b border-emerald-100 pb-1">
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                    <Briefcase size={12} />
-                                </div>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-800">Servidores (SRV)</h4>
-                            </div>
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100">
+                {/* TABS */}
+                <div className={`flex border-b ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50/50'}`}>
+                    <button 
+                        onClick={() => setActiveTab('SRV')}
+                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${
+                            activeTab === 'SRV' 
+                            ? 'text-emerald-600' 
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                    >
+                        <div className="flex items-center justify-center gap-2">
+                            <Briefcase size={14} />
+                            SERVIDORES (SRV)
+                            <span className={`px-1.5 py-0.5 rounded-full text-[8px] ${activeTab === 'SRV' ? 'bg-emerald-100' : 'bg-slate-200 text-slate-500'}`}>
                                 {categorizedOperators.SRV.length}
                             </span>
                         </div>
-                        
-                        {categorizedOperators.SRV.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-2">
-                                {categorizedOperators.SRV.map(op => renderOperatorItem(op))}
-                            </div>
-                        ) : (
-                            <p className="text-[9px] text-slate-400 italic text-center py-2">Nenhum operador SRV disponível</p>
-                        )}
-                    </div>
-
-                    {/* SEÇÃO CTA */}
-                    <div>
-                        <div className="flex items-center justify-between mb-3 border-b border-yellow-100 pb-1">
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded bg-yellow-100 text-yellow-600 flex items-center justify-center">
-                                    <Clock size={12} />
-                                </div>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-yellow-800">Caminhões Tanque (CTA)</h4>
-                            </div>
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full border border-yellow-100">
+                        {activeTab === 'SRV' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('CTA')}
+                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${
+                            activeTab === 'CTA' 
+                            ? 'text-amber-600' 
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                    >
+                        <div className="flex items-center justify-center gap-2">
+                            <Clock size={14} />
+                            TANQUES (CTA)
+                            <span className={`px-1.5 py-0.5 rounded-full text-[8px] ${activeTab === 'CTA' ? 'bg-amber-100' : 'bg-slate-200 text-slate-500'}`}>
                                 {categorizedOperators.CTA.length}
                             </span>
                         </div>
-                        
-                        {categorizedOperators.CTA.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-2">
-                                {categorizedOperators.CTA.map(op => renderOperatorItem(op))}
+                        {activeTab === 'CTA' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />}
+                    </button>
+                </div>
+
+                {/* LISTA DE OPERADORES */}
+                <div className="flex-1 p-4 min-h-[300px] max-h-[50vh] overflow-y-auto custom-scrollbar bg-white">
+                    <div className="space-y-2">
+                        {operators.length === 0 ? (
+                            <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 gap-4 py-12">
+                                <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                                    <User size={32} className="opacity-20" />
+                                </div>
+                                <div className="text-center">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest block">Nenhum operador disponível</span>
+                                    {onOpenOperators && (
+                                        <button 
+                                            onClick={() => { onClose(); onOpenOperators(); }}
+                                            className="mt-4 text-[10px] font-black text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg border border-indigo-100 transition-all uppercase tracking-widest flex items-center gap-2 mx-auto"
+                                        >
+                                            <UserPlus size={14} />
+                                            Configurar Equipe
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+                        ) : currentList.length > 0 ? (
+                            currentList.map(op => renderOperatorItem(op))
                         ) : (
-                            <p className="text-[9px] text-slate-400 italic text-center py-2">Nenhum operador CTA disponível</p>
+                            <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 gap-4">
+                                <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                                    <User size={32} className="opacity-20" />
+                                </div>
+                                <div className="text-center">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest block">Nenhum operador {activeTab} disponível</span>
+                                </div>
+                            </div>
                         )}
                     </div>
-
-                    {operators.length === 0 && (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4 py-12">
-                            <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
-                                <User size={32} className="opacity-20" />
-                            </div>
-                            <div className="text-center">
-                                <span className="text-[10px] font-bold uppercase tracking-widest block">Nenhum operador disponível</span>
-                                {onOpenOperators && (
-                                    <button 
-                                        onClick={() => { onClose(); onOpenOperators(); }}
-                                        className="mt-4 text-[10px] font-black text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg border border-indigo-100 transition-all uppercase tracking-widest flex items-center gap-2 mx-auto"
-                                    >
-                                        <UserPlus size={14} />
-                                        Configurar Operadores
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* FOOTER */}

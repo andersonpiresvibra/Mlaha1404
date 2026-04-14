@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { FlightStatus, FlightData, FlightLog, LogType, OperatorProfile, Vehicle } from '../types';
+import { FlightStatus, FlightData, FlightLog, LogType, OperatorProfile, Vehicle, Airline, AircraftDatabaseEntry } from '../types';
 import { db } from '../firebase';
 import { doc, addDoc, collection, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
@@ -50,6 +50,8 @@ interface GridOpsProps {
     onFinalizeFlight: (flight: FlightData) => Promise<void>;
     vehicles: Vehicle[];
     operators: OperatorProfile[];
+    airlines: Airline[];
+    aircraftDb: AircraftDatabaseEntry[];
     initialTab?: Tab;
     globalSearchTerm?: string;
     meshFlights?: any[];
@@ -110,19 +112,31 @@ const calculateLandingETA = (blockTime: string) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+// Helper para converter datas do Firebase (Timestamp ou String) para Date
+const parseDate = (dateVal: any): Date | null => {
+    if (!dateVal) return null;
+    if (dateVal instanceof Date) return dateVal;
+    if (typeof dateVal.toDate === 'function') return dateVal.toDate();
+    if (typeof dateVal === 'string' || typeof dateVal === 'number') return new Date(dateVal);
+    return null;
+};
+
 // Verifica se houve atraso REAL (Hora Finalização > ETD)
 const checkIsDelayed = (flight: FlightData) => {
-    if (!flight.endTime || !flight.etd) return false;
+    const endTime = parseDate(flight.endTime);
+    if (!endTime || !flight.etd) return false;
     const [h, m] = flight.etd.split(':').map(Number);
-    const etdDate = new Date(flight.endTime); 
+    const etdDate = new Date(endTime); 
     etdDate.setHours(h, m, 0, 0);
     // Se EndTime for maior que ETD, houve atraso
-    return flight.endTime.getTime() > etdDate.getTime();
+    return endTime.getTime() > etdDate.getTime();
 };
 
 const calculateTAB = (flight: FlightData) => {
-    if (!flight.designationTime || !flight.endTime) return "--:--";
-    const diffMs = flight.endTime.getTime() - flight.designationTime.getTime();
+    const desigTime = parseDate(flight.designationTime);
+    const endTime = parseDate(flight.endTime);
+    if (!desigTime || !endTime) return "--:--";
+    const diffMs = endTime.getTime() - desigTime.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const hrs = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
@@ -143,6 +157,8 @@ export const GridOps: React.FC<GridOpsProps> = ({
     onFinalizeFlight,
     vehicles, 
     operators,
+    airlines,
+    aircraftDb,
     initialTab = 'GERAL', 
     globalSearchTerm = '',
     meshFlights = [],
@@ -793,7 +809,8 @@ export const GridOps: React.FC<GridOpsProps> = ({
     }
 
     if (f.status === FlightStatus.DESIGNADO) {
-        const elapsed = f.designationTime ? (new Date().getTime() - f.designationTime.getTime()) / 60000 : 0;
+        const desigTime = parseDate(f.designationTime);
+        const elapsed = desigTime ? (new Date().getTime() - desigTime.getTime()) / 60000 : 0;
         if (elapsed > 15) return { 
             label: 'AGUARDANDO', 
             color: isDarkMode ? 'text-amber-500 bg-amber-500/10 border-amber-500' : 'text-amber-600 bg-amber-50 border-amber-200' 
@@ -1551,6 +1568,8 @@ export const GridOps: React.FC<GridOpsProps> = ({
         <CreateFlightModal 
           onClose={() => setIsCreateModalOpen(false)}
           onCreate={handleCreateFlight}
+          airlines={airlines}
+          aircraftDb={aircraftDb}
         />
       )}
 

@@ -76,6 +76,27 @@
         "flightData": { "$ref": "Flight" },
         "finalizedAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Airline": {
+      "title": "Airline",
+      "description": "Airline company details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "iata": { "type": "string" },
+        "icao": { "type": "string" },
+        "logoUrl": { "type": "string" }
+      }
+    },
+    "Aircraft": {
+      "title": "Aircraft",
+      "description": "Aircraft database for suggestions",
+      "type": "object",
+      "properties": {
+        "registration": { "type": "string" },
+        "model": { "type": "string" },
+        "airlineIata": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -90,6 +111,14 @@
     "/finalized_flights/{flightId}": {
       "schema": "FinalizedFlight",
       "description": "Historical flight records"
+    },
+    "/airlines/{airlineId}": {
+      "schema": "Airline",
+      "description": "Airline companies"
+    },
+    "/aircraft_database/{aircraftId}": {
+      "schema": "Aircraft",
+      "description": "Aircraft registry"
     }
   }
 }

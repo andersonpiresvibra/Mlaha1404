@@ -186,6 +186,21 @@ export interface StaticFlight {
   city: string;
 }
 
+export interface Airline {
+  id: string;
+  name: string;
+  iata: string;
+  icao: string;
+  logoUrl?: string;
+}
+
+export interface AircraftDatabaseEntry {
+  id: string;
+  registration: string;
+  model: string;
+  airlineIata: string;
+}
+
 export type DetailedVehicleStatus = 'OPERACIONAL' | 'EM MANUTENÇÃO' | 'INATIVO';
 
 export interface MaintenanceRecord {

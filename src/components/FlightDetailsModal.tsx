@@ -285,6 +285,13 @@ export const FlightDetailsModal: React.FC<FlightDetailsModalProps> = ({ flight, 
   const handleSaveChock = () => {
       if (chockInput === localFlight.actualArrivalTime) { setIsEditingChock(false); return; }
 
+      if (chockInput && !localFlight.positionId) {
+          // Se tentar inserir calço sem posição, não salvamos e avisamos
+          setIsEditingChock(false);
+          setChockInput(localFlight.actualArrivalTime || '');
+          return;
+      }
+
       const newLog = generateAuditLog('Horário Calço', localFlight.actualArrivalTime || '--', chockInput);
       const updated = { 
           ...localFlight, 
@@ -625,23 +632,36 @@ export const FlightDetailsModal: React.FC<FlightDetailsModalProps> = ({ flight, 
                     </div>
 
                     {/* CALÇO */}
-                    <div className="space-y-1.5 group">
+                    <div className="space-y-1.5 group relative">
                         <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <Anchor size={12} className="text-slate-300" /> Calço
                         </label>
                         {isEditingChock ? (
-                            <input 
-                                autoFocus
-                                type="time"
-                                className="w-full bg-slate-50 border border-indigo-200 text-slate-900 text-sm px-2 py-1.5 rounded-lg font-mono outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
-                                value={chockInput}
-                                onChange={e => setChockInput(e.target.value)}
-                                onBlur={handleSaveChock}
-                                onKeyDown={e => e.key === 'Enter' && handleSaveChock()}
-                            />
+                            <div className="relative">
+                                <input 
+                                    autoFocus
+                                    type="time"
+                                    className={`w-full bg-slate-50 border ${!localFlight.positionId ? 'border-red-300 ring-4 ring-red-500/5' : 'border-indigo-200 focus:ring-4 focus:ring-indigo-500/5'} text-slate-900 text-sm px-2 py-1.5 rounded-lg font-mono outline-none transition-all`}
+                                    value={chockInput}
+                                    onChange={e => setChockInput(e.target.value)}
+                                    onBlur={handleSaveChock}
+                                    onKeyDown={e => e.key === 'Enter' && handleSaveChock()}
+                                />
+                                {!localFlight.positionId && (
+                                    <div className="absolute -bottom-10 left-0 right-0 bg-red-50 border border-red-100 p-2 rounded shadow-xl z-50 animate-in fade-in slide-in-from-top-1">
+                                        <p className="text-[8px] font-black text-red-600 uppercase leading-tight flex items-center gap-1">
+                                            <AlertCircle size={10} /> Insira a posição primeiro
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         ) : (
-                            <div onClick={() => setIsEditingChock(true)} className="flex items-center gap-2 cursor-pointer group/item">
-                                <span className="text-lg font-mono text-[#0C9E6D] font-bold tracking-tight">
+                            <div 
+                                onClick={() => setIsEditingChock(true)} 
+                                className={`flex items-center gap-2 cursor-pointer group/item ${!localFlight.positionId ? 'opacity-50' : ''}`}
+                                title={!localFlight.positionId ? "Defina a posição antes de inserir o calço" : ""}
+                            >
+                                <span className={`text-lg font-mono font-bold tracking-tight ${!localFlight.positionId ? 'text-slate-400' : 'text-[#0C9E6D]'}`}>
                                     {chockInput || '--:--'}
                                 </span>
                                 <Pen size={10} className="text-slate-300 opacity-0 group-hover/item:opacity-100 transition-opacity" />
@@ -755,39 +775,54 @@ export const FlightDetailsModal: React.FC<FlightDetailsModalProps> = ({ flight, 
             )}
 
             {/* Ações (Cancelar / OK) */}
-            <div className="flex gap-4 pt-0 border-none mt-0">
-                <button 
-                    onClick={() => {
-                        if (isFinished) {
-                            const newLog: FlightLog = {
-                                id: Date.now().toString(),
-                                timestamp: new Date(),
-                                type: 'MANUAL',
-                                message: 'Voo arquivado da visão geral pelo gestor.',
-                                author: 'GESTOR_MESA'
-                            };
-                            const updatedFlight = {
-                                ...localFlight,
-                                isHiddenFromGrid: true,
-                                logs: [...(localFlight.logs || []), newLog]
-                            };
-                            onUpdate(updatedFlight);
-                        }
-                        onClose();
-                    }}
-                    className="flex-1 px-4 py-3.5 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-700 transition-all active:scale-95"
-                >
-                    {isFinished ? 'Limpar da Fila' : 'Cancelar'}
-                </button>
-                <button 
-                    onClick={() => {
-                        onUpdate(localFlight);
-                        onClose();
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-lg shadow-lg shadow-indigo-600/20 transition-all active:scale-95 btn-confirm-flight"
-                >
-                    <span className="text-[10px] font-black uppercase tracking-widest">Confirmar</span>
-                </button>
+            <div className="flex flex-col gap-3 pt-0 border-none mt-0">
+                {chockInput && !localFlight.positionId && (
+                    <div className="bg-red-50 border border-red-100 p-3 rounded-lg flex items-center gap-3 animate-pulse">
+                        <AlertCircle size={16} className="text-red-600 shrink-0" />
+                        <p className="text-[10px] font-black text-red-700 uppercase leading-tight">
+                            Bloqueio de Segurança: Não é possível confirmar calço sem uma posição definida.
+                        </p>
+                    </div>
+                )}
+                <div className="flex gap-4">
+                    <button 
+                        onClick={() => {
+                            if (isFinished) {
+                                const newLog: FlightLog = {
+                                    id: Date.now().toString(),
+                                    timestamp: new Date(),
+                                    type: 'MANUAL',
+                                    message: 'Voo arquivado da visão geral pelo gestor.',
+                                    author: 'GESTOR_MESA'
+                                };
+                                const updatedFlight = {
+                                    ...localFlight,
+                                    isHiddenFromGrid: true,
+                                    logs: [...(localFlight.logs || []), newLog]
+                                };
+                                onUpdate(updatedFlight);
+                            }
+                            onClose();
+                        }}
+                        className="flex-1 px-4 py-3.5 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-700 transition-all active:scale-95"
+                    >
+                        {isFinished ? 'Limpar da Fila' : 'Cancelar'}
+                    </button>
+                    <button 
+                        disabled={!!(chockInput && !localFlight.positionId)}
+                        onClick={() => {
+                            onUpdate(localFlight);
+                            onClose();
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-lg shadow-lg transition-all active:scale-95 btn-confirm-flight ${
+                            (chockInput && !localFlight.positionId)
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'
+                        }`}
+                    >
+                        <span className="text-[10px] font-black uppercase tracking-widest">Confirmar</span>
+                    </button>
+                </div>
             </div>
         </div>
     </motion.div>
