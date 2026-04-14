@@ -1,14 +1,13 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { ViewState, FlightData, Vehicle } from './types';
-import { MOCK_FLIGHTS, MOCK_TEAM_PROFILES } from './data/mockData';
-import { MOCK_VEHICLES } from './data/mockVehicleData';
-import { MeshFlight, INITIAL_MESH_FLIGHTS } from './data/operationalMesh';
+import { ViewState, FlightData, Vehicle, OperatorProfile } from './types';
 import { DashboardHeader } from './components/DashboardHeader';
 import { Spinner } from './components/ui/Spinner';
 import { useTheme } from './contexts/ThemeContext';
-import { Table, X } from 'lucide-react';
-import { OperatorProfile } from './types';
+import { X } from 'lucide-react';
 import { ShiftOperatorsSection } from './components/ShiftOperatorsSection';
+import { db, auth } from './firebase';
+import { collection, onSnapshot, query, orderBy, doc, setDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 const GridOps = lazy(() => import('./components/GridOps').then(m => ({ default: m.GridOps })));
 
@@ -16,25 +15,106 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('GRID_OPS');
   const [pendingAction, setPendingAction] = useState<'CREATE' | 'IMPORT' | null>(null);
 
-  // === ESTADO CENTRALIZADO (A VERDADE ÚNICA) ===
-  const [globalFlights, setGlobalFlights] = useState<FlightData[]>(MOCK_FLIGHTS);
-  const [globalVehicles, setGlobalVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
-  const [globalOperators, setGlobalOperators] = useState<OperatorProfile[]>(MOCK_TEAM_PROFILES);
-  const [meshFlights, setMeshFlights] = useState<MeshFlight[]>(() => {
-    const saved = localStorage.getItem('meshFlights');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse meshFlights from localStorage', e);
-      }
-    }
-    return INITIAL_MESH_FLIGHTS;
-  });
+  // === ESTADO CENTRALIZADO (SINCRONIZADO COM FIREBASE) ===
+  const [globalFlights, setGlobalFlights] = useState<FlightData[]>([]);
+  const [globalVehicles, setGlobalVehicles] = useState<Vehicle[]>([]);
+  const [globalOperators, setGlobalOperators] = useState<OperatorProfile[]>([]);
+  const [meshFlights, setMeshFlights] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      setAuthError(null);
+    } catch (error: any) {
+      console.error("Erro no login Google:", error);
+      setAuthError("Falha no login com Google. Verifique se o provedor está habilitado.");
+    }
+  };
+
+  // Autenticação anônima para garantir que as regras funcionem
   useEffect(() => {
-    localStorage.setItem('meshFlights', JSON.stringify(meshFlights));
-  }, [meshFlights]);
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        setUser(u);
+        setAuthError(null);
+      } else {
+        signInAnonymously(auth).catch((error: any) => {
+          console.error("Erro na autenticação anônima:", error);
+          if (error.code === 'auth/admin-restricted-operation') {
+            setAuthError("A autenticação anônima está desativada no console do Firebase. Por favor, faça login com Google ou habilite o provedor 'Anônimo'.");
+          } else {
+            setAuthError("Erro de autenticação: " + error.message);
+          }
+        });
+      }
+    });
+    return unsub;
+  }, []);
+
+  // Listeners do Firebase
+  useEffect(() => {
+    if (!user) return;
+
+    const qFlights = query(collection(db, 'flights'), orderBy('etd', 'asc'));
+    const unsubFlights = onSnapshot(qFlights, (snapshot) => {
+      const flights = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as FlightData));
+      setGlobalFlights(flights);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Erro ao carregar voos:", error);
+      setIsLoading(false);
+    });
+
+    const unsubOperators = onSnapshot(collection(db, 'operators'), (snapshot) => {
+      const operators = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as OperatorProfile));
+      setGlobalOperators(operators);
+    });
+
+    return () => {
+      unsubFlights();
+      unsubOperators();
+    };
+  }, [user]);
+
+  // Funções de Persistência
+  const persistFlight = async (flight: Partial<FlightData>) => {
+    if (!flight.id) {
+      await addDoc(collection(db, 'flights'), { ...flight, createdAt: serverTimestamp() });
+    } else {
+      const { id, ...data } = flight;
+      // Usamos setDoc com merge: true para evitar erro de "documento não encontrado" 
+      // caso o ID tenha sido gerado localmente ou o documento tenha sido removido.
+      await setDoc(doc(db, 'flights', id), data, { merge: true });
+    }
+  };
+
+  const persistOperator = async (operator: Partial<OperatorProfile>) => {
+    if (!operator.id) {
+      await addDoc(collection(db, 'operators'), { ...operator, createdAt: serverTimestamp() });
+    } else {
+      const { id, ...data } = operator;
+      await setDoc(doc(db, 'operators', id), data, { merge: true });
+    }
+  };
+
+  const removeOperator = async (id: string) => {
+    await deleteDoc(doc(db, 'operators', id));
+  };
+
+  const finalizeFlight = async (flight: FlightData) => {
+    // 1. Salvar na coleção de finalizados (Caixa Preta)
+    await addDoc(collection(db, 'finalized_flights'), {
+      flightId: flight.id,
+      flightData: flight,
+      finalizedAt: serverTimestamp()
+    });
+    // 2. Remover da malha ativa
+    await deleteDoc(doc(db, 'flights', flight.id));
+  };
 
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [gridOpsInitialTab, setGridOpsInitialTab] = useState<'GERAL' | 'CHEGADA' | 'FILA' | 'DESIGNADOS' | 'ABASTECENDO' | 'FINALIZADO'>('GERAL');
@@ -114,8 +194,47 @@ const App: React.FC = () => {
     return () => clearInterval(flowTimer);
   }, []);
 
+  const handleSync = async () => {
+    console.log("Sincronizando com o banco de dados...");
+    // A sincronização real acontece via onSnapshot, 
+    // mas aqui poderíamos forçar um refresh ou disparar um job no backend.
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-950">
+        <Spinner size={48} text="Conectando à MALHA..." />
+      </div>
+    );
+  }
+
   return (
     <div className={`${isDarkMode ? 'dark bg-slate-950' : 'bg-slate-50'} ${isPseudoFullscreen ? 'fixed inset-0 z-[9999]' : 'h-screen w-screen'} overflow-hidden flex flex-col`}>
+      {authError && !user && (
+        <div className="fixed inset-0 z-[10000] bg-slate-900/90 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 p-8 rounded-2xl max-w-md w-full shadow-2xl text-center">
+            <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <X size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-4">Erro de Autenticação</h2>
+            <p className="text-slate-400 mb-8 leading-relaxed">
+              {authError}
+            </p>
+            <div className="space-y-4">
+              <button 
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 px-6 rounded-xl transition-all active:scale-95"
+              >
+                <img src="https://www.gstatic.com/firebase/explore/google.svg" alt="Google" className="w-5 h-5" />
+                Entrar com Google
+              </button>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                Ou habilite "Anonymous Auth" no Console do Firebase
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <DashboardHeader 
         isDarkMode={isDarkMode} 
         toggleDarkMode={toggleDarkMode} 
@@ -123,6 +242,7 @@ const App: React.FC = () => {
         onToggleFullscreen={toggleFullscreen} 
         globalSearchTerm={globalSearchTerm}
         setGlobalSearchTerm={setGlobalSearchTerm}
+        onSync={handleSync}
       />
       
       <div id="subheader-portal-target" className="w-full shrink-0 z-[60] relative"></div>
@@ -135,7 +255,7 @@ const App: React.FC = () => {
                 {view === 'GRID_OPS' && (
                   <GridOps 
                     flights={globalFlights} 
-                    onUpdateFlights={setGlobalFlights} 
+                    onUpdateFlights={persistFlight} 
                     vehicles={globalVehicles}
                     operators={globalOperators}
                     initialTab={gridOpsInitialTab}
@@ -145,13 +265,15 @@ const App: React.FC = () => {
                     onOpenShiftOperators={() => setView('SHIFT_OPERATORS')}
                     pendingAction={pendingAction}
                     setPendingAction={setPendingAction}
+                    onFinalizeFlight={finalizeFlight}
                   />
                 )}
                 {view === 'SHIFT_OPERATORS' && (
                   <ShiftOperatorsSection 
                     onClose={() => setView('GRID_OPS')}
                     operators={globalOperators}
-                    onUpdateOperators={setGlobalOperators}
+                    onUpdateOperators={persistOperator}
+                    onRemoveOperator={removeOperator}
                     onOpenCreateModal={() => {
                         setPendingAction('CREATE');
                         setView('GRID_OPS');

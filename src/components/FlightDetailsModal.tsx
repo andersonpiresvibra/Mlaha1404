@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FlightData, FlightLog, OperatorProfile, Vehicle, FlightStatus } from '../types';
-import { MOCK_TEAM_PROFILES } from '../data/mockData';
 import useOnClickOutside from '../hooks/useOnClickOutside';
 import { DesigOpr } from './DesigOpr';
 import { useTheme } from '../contexts/ThemeContext';
@@ -36,7 +35,7 @@ const ICAO_CITIES: Record<string, string> = {
 interface FlightDetailsModalProps {
   flight: FlightData;
   onClose: () => void;
-  onUpdate: (updatedFlight: FlightData) => void;
+  onUpdate: (flight: Partial<FlightData>) => Promise<void>;
   vehicles: Vehicle[];
   operators: OperatorProfile[];
   onOpenAssignSupport?: (flight: FlightData) => void;
@@ -142,7 +141,7 @@ export const FlightDetailsModal: React.FC<FlightDetailsModalProps> = ({ flight, 
   const availableOperators = useMemo(() => {
     const isRemote = flight.positionId.startsWith('5') || flight.positionId.startsWith('6') || flight.positionId.startsWith('7');
 
-    return MOCK_TEAM_PROFILES
+    return operators
       .filter(op => {
         if (op.status !== 'DISPONÍVEL') return false;
         if (isRemote && op.category !== 'ILHA' && op.category !== 'VIP') return false; // Simplificado para ILHA/VIP em remotas

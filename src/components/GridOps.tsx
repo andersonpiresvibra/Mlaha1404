@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { FlightStatus, FlightData, FlightLog, LogType, OperatorProfile } from '../types';
-import { MOCK_TEAM_PROFILES } from '../data/mockData'; // Importando perfis para designação
+import { FlightStatus, FlightData, FlightLog, LogType, OperatorProfile, Vehicle } from '../types';
+import { db } from '../firebase';
+import { doc, addDoc, collection, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 import { FlightDetailsModal } from './FlightDetailsModal';
 import { StatusBadge } from './SharedStats';
@@ -40,23 +41,22 @@ import { DelayJustificationModal } from './modals/DelayJustificationModal';
 import { ObservationModal } from './modals/ObservationModal';
 import { ConfirmActionModal } from './modals/ConfirmActionModal';
 import { ImportModal } from './modals/ImportModal';
-import { Vehicle } from '../types';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { MeshFlight } from '../data/operationalMesh';
 
 interface GridOpsProps {
     flights: FlightData[];
-    onUpdateFlights: React.Dispatch<React.SetStateAction<FlightData[]>>;
+    onUpdateFlights: (flight: Partial<FlightData>) => Promise<void>;
+    onFinalizeFlight: (flight: FlightData) => Promise<void>;
     vehicles: Vehicle[];
     operators: OperatorProfile[];
     initialTab?: Tab;
     globalSearchTerm?: string;
-    meshFlights?: MeshFlight[];
-    setMeshFlights?: React.Dispatch<React.SetStateAction<MeshFlight[]>>;
+    meshFlights?: any[];
+    setMeshFlights?: (flights: any[]) => void;
     onOpenShiftOperators?: () => void;
     pendingAction?: 'CREATE' | 'IMPORT' | null;
-    setPendingAction?: React.Dispatch<React.SetStateAction<'CREATE' | 'IMPORT' | null>>;
+    setPendingAction?: (action: 'CREATE' | 'IMPORT' | null) => void;
 }
 
 const parseTime = (timeStr: string) => {
@@ -140,6 +140,7 @@ const createNewLog = (type: LogType, message: string, author: string = 'GESTOR_M
 export const GridOps: React.FC<GridOpsProps> = ({ 
     flights, 
     onUpdateFlights, 
+    onFinalizeFlight,
     vehicles, 
     operators,
     initialTab = 'GERAL', 
@@ -219,7 +220,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
   const optionsMenuRef = useRef<HTMLDivElement>(null);
 
   const handleCreateFlight = (newFlight: FlightData) => {
-    onUpdateFlights(prev => [newFlight, ...prev]);
+    onUpdateFlights(newFlight);
     addToast('VOO CRIADO', `Voo ${newFlight.flightNumber} criado com sucesso.`, 'success');
     setIsCreateModalOpen(false);
   };
@@ -249,35 +250,22 @@ export const GridOps: React.FC<GridOpsProps> = ({
 
   useEffect(() => {
     const interval = setInterval(() => {
-        onUpdateFlights(prevFlights => {
-            return prevFlights.map(f => {
-                const minutesToETD = getMinutesDiff(f.etd);
-                // LÓGICA DE AUTOMATIZAÇÃO PARA FILA:
-                // Só move para fila se NÃO tiver operador e estiver no prazo crítico
-                if (f.status === FlightStatus.CHEGADA && minutesToETD < 60 && !f.operator) {
-                    const newLog = createNewLog('SISTEMA', 'Voo movido para FILA automaticamente (ETD < 60min).', 'SISTEMA');
-                    return { 
-                        ...f, 
-                        status: FlightStatus.FILA,
-                        logs: [...(f.logs || []), newLog]
-                    };
-                }
-                
-                // Simulação de novas informações (ETA update, mensagens, etc)
-                if (Math.random() < 0.05) { // 5% chance per flight per 5s
-                    const randomChange = Math.random();
-                    if (randomChange < 0.3) {
-                        // Update ETA slightly
-                        // Logic omitted for brevity, keeping simple
-                    }
-                }
-
-                return f;
-            });
+        flights.forEach(f => {
+            const minutesToETD = getMinutesDiff(f.etd);
+            // LÓGICA DE AUTOMATIZAÇÃO PARA FILA:
+            // Só move para fila se NÃO tiver operador e estiver no prazo crítico
+            if (f.status === FlightStatus.CHEGADA && minutesToETD < 60 && !f.operator) {
+                const newLog = createNewLog('SISTEMA', 'Voo movido para FILA automaticamente (ETD < 60min).', 'SISTEMA');
+                onUpdateFlights({ 
+                    id: f.id, 
+                    status: FlightStatus.FILA,
+                    logs: [...(f.logs || []), newLog]
+                });
+            }
         });
     }, 5000);
     return () => clearInterval(interval);
-  }, [onUpdateFlights]);
+  }, [flights, onUpdateFlights]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -430,23 +418,26 @@ export const GridOps: React.FC<GridOpsProps> = ({
       }
 
       const newLog = createNewLog('MANUAL', 'Voo movido para FILA manualmente.', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === flight.id ? { 
-          ...f, 
+      onUpdateFlights({ 
+          id: flight.id, 
           status: FlightStatus.FILA,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          logs: [...(flight.logs || []), newLog]
+      });
       addToast('VOO NA FILA', `Voo ${flight.flightNumber} adicionado à fila de prioridade.`, 'success');
   };
 
   const handleManualStart = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
+      const flight = flights.find(f => f.id === id);
+      if (!flight) return;
+
       const newLog = createNewLog('SISTEMA', 'Início de abastecimento confirmado.', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === id ? { 
-          ...f, 
+      onUpdateFlights({ 
+          id: id, 
           status: FlightStatus.ABASTECENDO, 
           startTime: new Date(),
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          logs: [...(flight.logs || []), newLog]
+      });
   };
 
   const handleManualFinish = (flight: FlightData, e: React.MouseEvent) => {
@@ -471,11 +462,11 @@ export const GridOps: React.FC<GridOpsProps> = ({
       if (!cancelModalFlight) return;
       
       const newLog = createNewLog('MANUAL', 'Voo CANCELADO manualmente pelo gestor.', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === cancelModalFlight.id ? { 
-          ...f, 
+      onUpdateFlights({ 
+          id: cancelModalFlight.id, 
           status: FlightStatus.CANCELADO,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          logs: [...(cancelModalFlight.logs || []), newLog]
+      });
       
       addToast('VOO CANCELADO', `Voo ${cancelModalFlight.flightNumber} foi cancelado.`, 'info');
       setCancelModalFlight(null);
@@ -484,29 +475,36 @@ export const GridOps: React.FC<GridOpsProps> = ({
   const handleReportCalco = (flight: FlightData, e: React.MouseEvent) => {
       e.stopPropagation();
       const newLog = createNewLog('MANUAL', 'Calço reportado manualmente pelo gestor.', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === flight.id ? { 
-          ...f, 
+      onUpdateFlights({ 
+          id: flight.id,
           isOnGround: true,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          logs: [...(flight.logs || []), newLog]
+      });
       addToast('CALÇO REPORTADO', `Aeronave ${flight.registration} (Voo ${flight.flightNumber}) em calço.`, 'success');
       setOpenMenuId(null);
   };
 
   const confirmFinish = (id: string, flightNumber: string, delayJustification?: string) => {
+      const flight = flights.find(f => f.id === id);
+      if (!flight) return;
+
       let newLog: FlightLog;
       if (delayJustification) {
           newLog = createNewLog('ATRASO', `Finalizado com ATRASO. Justificativa: ${delayJustification}`, 'GESTOR_MESA');
       } else {
           newLog = createNewLog('SISTEMA', 'Abastecimento finalizado no horário.', 'GESTOR_MESA');
       }
-      onUpdateFlights(prev => prev.map(f => f.id === id ? { 
-          ...f, 
+      
+      const updatedFlight = { 
+          ...flight, 
           status: FlightStatus.FINALIZADO, 
           endTime: new Date(),
           delayJustification: delayJustification,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          logs: [...(flight.logs || []), newLog]
+      };
+
+      onFinalizeFlight(updatedFlight);
+
       addToast(
           delayJustification ? 'ATRASO REGISTRADO' : 'OPERAÇÃO CONCLUÍDA', 
           `Voo ${flightNumber} finalizado${delayJustification ? ' com relatório de atraso' : ''}.`, 
@@ -527,60 +525,68 @@ export const GridOps: React.FC<GridOpsProps> = ({
   
   const handleRemoveStandby = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
+      const flight = flights.find(f => f.id === id);
+      if (!flight) return;
+
       const newLog = createNewLog('MANUAL', 'Removido de Standby. Retomando prioridade.', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === id ? { 
-          ...f, 
+      onUpdateFlights({ 
+          id: id, 
           isStandby: false, 
-          standbyReason: undefined,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          standbyReason: null as any,
+          logs: [...(flight.logs || []), newLog]
+      });
   };
 
   const handleConfirmVisual = (id: string, flightNumber: string, e: React.MouseEvent) => {
       e.stopPropagation();
+      const flight = flights.find(f => f.id === id);
+      if (!flight) return;
+
       setArchivedIds(prev => new Set(prev).add(id));
       
       const newLog = createNewLog('MANUAL', 'Voo arquivado da visão geral pelo gestor.', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === id ? {
-          ...f,
+      onUpdateFlights({
+          id: id,
           isHiddenFromGrid: true,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          logs: [...(flight.logs || []), newLog]
+      });
       
       addToast('ARQUIVADO', `Voo ${flightNumber} movido para histórico.`, 'info');
   };
 
   const handleClearFinished = () => {
-      onUpdateFlights(prev => prev.map(f => 
-          (f.status === FlightStatus.FINALIZADO || f.status === FlightStatus.CANCELADO) 
-              ? { ...f, isHiddenFromGrid: true } 
-              : f
-      ));
+      flights.forEach(f => {
+          if (f.status === FlightStatus.FINALIZADO || f.status === FlightStatus.CANCELADO) {
+              onUpdateFlights({ id: f.id, isHiddenFromGrid: true });
+          }
+      });
       addToast('HISTÓRICO LIMPO', 'Voos finalizados e cancelados foram arquivados.', 'success');
   };
 
   const handlePinFlight = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      onUpdateFlights(prev => prev.map(f => {
-          if (f.id === id) {
-              const newLog = createNewLog('MANUAL', f.isPinned ? 'Voo desfixado do topo pelo gestor.' : 'Voo fixado no topo pelo gestor.', 'GESTOR_MESA');
-              return { ...f, isPinned: !f.isPinned, logs: [...(f.logs || []), newLog] };
-          }
-          return f;
-      }));
+      const flight = flights.find(f => f.id === id);
+      if (!flight) return;
+
+      const newLog = createNewLog('MANUAL', flight.isPinned ? 'Voo desfixado do topo pelo gestor.' : 'Voo fixado no topo pelo gestor.', 'GESTOR_MESA');
+      onUpdateFlights({ 
+          id: id, 
+          isPinned: !flight.isPinned, 
+          logs: [...(flight.logs || []), newLog] 
+      });
       setOpenMenuId(null);
   };
 
   const handleReforco = (flight: FlightData, e: React.MouseEvent) => {
       e.stopPropagation();
       const newLog = createNewLog('MANUAL', 'Voo redirecionado para REFORÇO (Fila).', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === flight.id ? { 
-          ...f, 
+      onUpdateFlights({ 
+          id: flight.id, 
           status: FlightStatus.FILA,
-          operator: undefined,
-          designationTime: undefined,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          operator: null as any,
+          designationTime: null as any,
+          logs: [...(flight.logs || []), newLog]
+      });
       addToast('REFORÇO', `Voo ${flight.flightNumber} retornado para a fila.`, 'success');
       setOpenMenuId(null);
   };
@@ -595,13 +601,13 @@ export const GridOps: React.FC<GridOpsProps> = ({
   const handleConfirmRemoveOperator = () => {
       if (!confirmRemoveOperatorFlight) return;
       const newLog = createNewLog('MANUAL', 'Operador removido. Voo retornou para a fila.', 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => f.id === confirmRemoveOperatorFlight.id ? { 
-          ...f, 
+      onUpdateFlights({ 
+          id: confirmRemoveOperatorFlight.id, 
           status: FlightStatus.FILA,
-          operator: undefined,
-          designationTime: undefined,
-          logs: [...(f.logs || []), newLog]
-      } : f));
+          operator: null as any,
+          designationTime: null as any,
+          logs: [...(confirmRemoveOperatorFlight.logs || []), newLog]
+      });
       addToast('OPERADOR REMOVIDO', `Operador removido do voo ${confirmRemoveOperatorFlight.flightNumber}.`, 'info');
       setConfirmRemoveOperatorFlight(null);
   };
@@ -628,15 +634,15 @@ export const GridOps: React.FC<GridOpsProps> = ({
           const newLog = createNewLog('MANUAL', `Operador ${operator.warName} designado manualmente.`, 'GESTOR_MESA');
           
           // IMPORTANTE: Ao designar, o status vai para DESIGNADO, removendo automaticamente da FILA
-          onUpdateFlights(prev => prev.map(f => f.id === assignModalFlight.id ? { 
-              ...f, 
+          onUpdateFlights({ 
+              id: assignModalFlight.id, 
               status: FlightStatus.DESIGNADO, 
               operator: operator.warName,
               fleet: operator.assignedVehicle,
               fleetType: operator.fleetCapability as any,
               designationTime: new Date(),
-              logs: [...(f.logs || []), newLog]
-          } : f));
+              logs: [...(assignModalFlight.logs || []), newLog]
+          });
 
           addToast('DESIGNADO', `Operador ${operator.warName} assumiu voo ${assignModalFlight.flightNumber}.`, 'success');
           setAssignModalFlight(null);
@@ -652,11 +658,11 @@ export const GridOps: React.FC<GridOpsProps> = ({
 
           const newLog = createNewLog('MANUAL', `Op. Apoio ${operator.warName} designado manualmente.`, 'GESTOR_MESA');
           
-          onUpdateFlights(prev => prev.map(f => f.id === assignSupportModalFlight.id ? { 
-              ...f, 
+          onUpdateFlights({ 
+              id: assignSupportModalFlight.id, 
               supportOperator: operator.warName,
-              logs: [...(f.logs || []), newLog]
-          } : f));
+              logs: [...(assignSupportModalFlight.logs || []), newLog]
+          });
 
           addToast('APOIO DESIGNADO', `Operador ${operator.warName} assumiu como apoio no voo ${assignSupportModalFlight.flightNumber}.`, 'success');
           setAssignSupportModalFlight(null);
@@ -695,11 +701,10 @@ export const GridOps: React.FC<GridOpsProps> = ({
   const handleSaveObservation = () => {
     if (observationModalFlight && newObservation.trim()) {
       const newLog = createNewLog('OBSERVACAO', newObservation.trim(), 'GESTOR_MESA');
-      onUpdateFlights(prev => prev.map(f => 
-        f.id === observationModalFlight.id 
-          ? { ...f, logs: [...(f.logs || []), newLog] } 
-          : f
-      ));
+      onUpdateFlights({ 
+        id: observationModalFlight.id, 
+        logs: [...(observationModalFlight.logs || []), newLog] 
+      });
       addToast('OBSERVAÇÃO REGISTRADA', `Nota adicionada ao voo ${observationModalFlight.flightNumber}.`, 'success');
       setObservationModalFlight(null);
       setNewObservation('');
@@ -1106,7 +1111,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 <td className={`px-3 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all truncate`}>
                                     {row.operator ? (
                                         <div className="flex items-center justify-between">
-                                            <OperatorCell operatorName={row.operator} />
+                                            <OperatorCell operatorName={row.operator} operators={operators} />
                                         </div>
                                     ) : (
                                         <button 
@@ -1176,7 +1181,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 {/* OPERATOR (WITH ASSIGN BUTTON & MESSAGE DOT) */}
                                 <td className={`px-3 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all truncate`}>
                                     {row.operator ? (
-                                        <OperatorCell operatorName={row.operator} />
+                                        <OperatorCell operatorName={row.operator} operators={operators} />
                                     ) : <span className={`${isDarkMode ? 'text-slate-700' : 'text-slate-400'} italic uppercase text-[9px] pl-2`}>--</span>}
                                 </td>
 
@@ -1254,7 +1259,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 <td className={`px-3 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all truncate`}>
                                     {row.operator ? (
                                         <div className="flex items-center justify-between">
-                                            <OperatorCell operatorName={row.operator} />
+                                            <OperatorCell operatorName={row.operator} operators={operators} />
                                         </div>
                                     ) : (
                                         <button 

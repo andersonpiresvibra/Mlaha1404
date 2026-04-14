@@ -20,7 +20,7 @@ const createNewLog = (type: FlightLog['type'], message: string, author: string):
 
 interface CreateFlightModalProps {
   onClose: () => void;
-  onCreate: (flight: FlightData) => void;
+  onCreate: (flight: Partial<FlightData>) => Promise<void>;
 }
 
 export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, onCreate }) => {
@@ -49,8 +49,7 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
     const airlineCode = formData.airlineCode.toUpperCase() === 'G3' ? 'RG' : formData.airlineCode.toUpperCase();
     const airlineName = airlineCode === 'RG' ? 'GOL' : (airlineCode === 'LA' ? 'LATAM' : (airlineCode === 'AD' ? 'AZUL' : 'OUTRA'));
 
-    const newFlight: FlightData = {
-      id: Date.now().toString(),
+    const newFlight: Partial<FlightData> = {
       airline: airlineName,
       airlineCode: airlineCode,
       registration: formData.registration.toUpperCase(),

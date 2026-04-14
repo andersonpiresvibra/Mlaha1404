@@ -7,7 +7,8 @@ import { useTheme } from '../contexts/ThemeContext';
 interface ShiftOperatorsSectionProps {
     onClose: () => void;
     operators: OperatorProfile[];
-    onUpdateOperators: (operators: OperatorProfile[]) => void;
+    onUpdateOperators: (operator: Partial<OperatorProfile>) => Promise<void>;
+    onRemoveOperator: (id: string) => Promise<void>;
     onOpenCreateModal?: () => void;
     onOpenImportModal?: () => void;
     globalSearchTerm?: string;
@@ -17,6 +18,7 @@ export const ShiftOperatorsSection: React.FC<ShiftOperatorsSectionProps> = ({
     onClose, 
     operators, 
     onUpdateOperators, 
+    onRemoveOperator,
     onOpenCreateModal, 
     onOpenImportModal,
     globalSearchTerm = ''
@@ -72,32 +74,31 @@ export const ShiftOperatorsSection: React.FC<ShiftOperatorsSectionProps> = ({
             stats: { flightsWeekly: 0, flightsMonthly: 0, volumeWeekly: 0, volumeMonthly: 0 }
         };
 
-        onUpdateOperators([newOperator, ...operators]);
+        onUpdateOperators(newOperator);
         setNameInput('');
         setFleetInput('');
         setFleetTypeInput('');
     };
 
     const handleRemove = (id: string) => {
-        onUpdateOperators(operators.filter(op => op.id !== id));
+        onRemoveOperator(id);
     };
 
     const handleUpdateOperator = (id: string, field: keyof OperatorProfile, value: any) => {
-        onUpdateOperators(operators.map(op => {
-            if (op.id === id) {
-                const updated = { ...op, [field]: value };
-                // Se removeu a frota, limpa o tipo também
-                if (field === 'assignedVehicle' && !value) {
-                    updated.fleetCapability = undefined;
-                }
-                // Se adicionou frota e não tinha tipo, define SRV como padrão
-                if (field === 'assignedVehicle' && value && !op.fleetCapability) {
-                    updated.fleetCapability = 'SRV';
-                }
-                return updated;
-            }
-            return op;
-        }));
+        const op = operators.find(o => o.id === id);
+        if (!op) return;
+
+        const updated: any = { id, [field]: value };
+        // Se removeu a frota, limpa o tipo também
+        if (field === 'assignedVehicle' && !value) {
+            updated.fleetCapability = null;
+        }
+        // Se adicionou frota e não tinha tipo, define SRV como padrão
+        if (field === 'assignedVehicle' && value && !op.fleetCapability) {
+            updated.fleetCapability = 'SRV';
+        }
+        
+        onUpdateOperators(updated);
     };
 
     const filteredOperators = operators.filter(op => {

@@ -8,9 +8,18 @@ interface DashboardHeaderProps {
   onToggleFullscreen: () => void;
   globalSearchTerm: string;
   setGlobalSearchTerm: (term: string) => void;
+  onSync: () => void;
 }
 
-export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ isDarkMode, toggleDarkMode, isFullscreen, onToggleFullscreen, globalSearchTerm, setGlobalSearchTerm }) => {
+export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
+  isDarkMode, 
+  toggleDarkMode, 
+  isFullscreen, 
+  onToggleFullscreen, 
+  globalSearchTerm, 
+  setGlobalSearchTerm,
+  onSync
+}) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [editingField, setEditingField] = useState<'density' | 'temperature' | null>(null);
   const [densityN, setDensityN] = useState(0.803);
@@ -170,7 +179,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ isDarkMode, to
 
           <button 
             onClick={() => {
-              // Simulate sync
+              onSync();
               const btn = document.activeElement as HTMLElement;
               if (btn) btn.blur();
             }}

@@ -1,6 +1,6 @@
 {
-  "name": "MALHA-1404-1",
-  "description": "",
+  "name": "MALHA",
+  "description": "Sistema de Gestão Operacional de Abastecimento de Aeronaves (SBGR)",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

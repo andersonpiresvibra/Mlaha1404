@@ -1,17 +1,19 @@
 
 import React, { useState } from 'react';
-import { MOCK_TEAM_PROFILES } from '../data/mockData';
+import { OperatorProfile } from '../types';
 import { User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface OperatorCellProps {
   operatorName?: string;
+  operators?: OperatorProfile[];
   className?: string;
   showName?: boolean;
 }
 
 export const OperatorCell: React.FC<OperatorCellProps> = ({ 
   operatorName, 
+  operators = [],
   className = "",
   showName = true 
 }) => {
@@ -20,7 +22,7 @@ export const OperatorCell: React.FC<OperatorCellProps> = ({
 
   if (!operatorName) return <span className={isDarkMode ? "text-slate-500" : "text-slate-400"}>---</span>;
 
-  const profile = MOCK_TEAM_PROFILES.find(p => p.warName === operatorName);
+  const profile = operators.find(p => p.warName === operatorName);
   
   return (
     <div className={`flex items-center justify-start gap-2 ${className}`}>

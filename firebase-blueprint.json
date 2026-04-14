@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "Flight": {
+      "title": "Flight",
+      "description": "Active flight in the operational grid",
+      "type": "object",
+      "properties": {
+        "flightNumber": { "type": "string", "description": "Departure flight number (e.g. LA-1234)" },
+        "arrivalFlightNumber": { "type": "string", "description": "Arrival flight number (e.g. LA-4321)" },
+        "airline": { "type": "string", "description": "Airline name" },
+        "airlineCode": { "type": "string", "description": "Airline IATA/ICAO code for logo" },
+        "model": { "type": "string", "description": "Aircraft model (e.g. A320)" },
+        "registration": { "type": "string", "description": "Aircraft registration (e.g. PT-XBX)" },
+        "origin": { "type": "string", "description": "Origin airport" },
+        "destination": { "type": "string", "description": "Destination airport" },
+        "city": { "type": "string", "description": "Destination city" },
+        "icao": { "type": "string", "description": "Airport ICAO (e.g. SBGR)" },
+        "eta": { "type": "string", "description": "Estimated Time of Arrival" },
+        "etd": { "type": "string", "description": "Estimated Time of Departure" },
+        "actualArrivalTime": { "type": "string", "description": "Actual Arrival Time (Calço)" },
+        "positionId": { "type": "string", "description": "Parking position (e.g. 123, 123R)" },
+        "positionType": { "type": "string", "enum": ["SRV", "CTA"] },
+        "status": { "type": "string", "enum": ["CHEGADA", "FILA", "DESIGNADO", "AGUARDANDO", "ABASTECENDO", "FINALIZADO", "CANCELADO"] },
+        "operator": { "type": "string", "description": "Assigned operator name" },
+        "fleet": { "type": "string", "description": "Assigned vehicle number" },
+        "fleetType": { "type": "string", "enum": ["SRV", "CTA"] },
+        "currentFlowRate": { "type": "number", "description": "Current flow rate (L/min)" },
+        "volume": { "type": "number", "description": "Total volume to be refueled" },
+        "isPinned": { "type": "boolean" },
+        "designationTime": { "type": "string", "format": "date-time" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "queueTime": { "type": "string", "format": "date-time" },
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "type": { "type": "string" },
+              "message": { "type": "string" },
+              "author": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["flightNumber", "airline", "status"]
+    },
+    "Operator": {
+      "title": "Operator",
+      "description": "Operator profile and shift status",
+      "type": "object",
+      "properties": {
+        "warName": { "type": "string" },
+        "fullName": { "type": "string" },
+        "status": { "type": "string", "enum": ["DISPONÍVEL", "OCUPADO", "INTERVALO", "DESCONECTADO", "ENCHIMENTO", "DESIGNADO"] },
+        "category": { "type": "string", "enum": ["AERODROMO", "VIP", "ILHA"] },
+        "assignedVehicle": { "type": "string" },
+        "fleetCapability": { "type": "string", "enum": ["SRV", "CTA"] },
+        "shift": {
+          "type": "object",
+          "properties": {
+            "cycle": { "type": "string" },
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        }
+      }
+    },
+    "FinalizedFlight": {
+      "title": "Finalized Flight",
+      "description": "Historical record of a completed flight (Black Box)",
+      "type": "object",
+      "properties": {
+        "flightId": { "type": "string" },
+        "flightData": { "$ref": "Flight" },
+        "finalizedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/flights/{flightId}": {
+      "schema": "Flight",
+      "description": "Active flights"
+    },
+    "/operators/{operatorId}": {
+      "schema": "Operator",
+      "description": "Shift operators"
+    },
+    "/finalized_flights/{flightId}": {
+      "schema": "FinalizedFlight",
+      "description": "Historical flight records"
+    }
+  }
+}

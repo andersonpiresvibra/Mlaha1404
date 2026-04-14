@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: flights
+    // Fields: flightNumber (string), airline (string), status (string), etc.
+    //
+    // Collection: operators
+    // Fields: warName (string), status (string), etc.
+    //
+    // Collection: finalized_flights
+    // Fields: flightId (string), flightData (map), finalizedAt (timestamp)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "anderson.hpires@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidFlight(data) {
+      return data.flightNumber is string && data.flightNumber.size() > 0 && data.flightNumber.size() < 20 &&
+             data.airline is string && data.airline.size() > 0 &&
+             data.status in ['CHEGADA', 'FILA', 'DESIGNADO', 'AGUARDANDO', 'ABASTECENDO', 'FINALIZADO', 'CANCELADO'];
+    }
+
+    function isValidOperator(data) {
+      return data.warName is string && data.warName.size() > 0 &&
+             data.status in ['DISPONÍVEL', 'OCUPADO', 'INTERVALO', 'DESCONECTADO', 'ENCHIMENTO', 'DESIGNADO'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /flights/{flightId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidFlight(request.resource.data);
+      allow update: if isAuthenticated() && isValidFlight(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /operators/{operatorId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidOperator(request.resource.data);
+      allow update: if isAuthenticated() && isValidOperator(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /finalized_flights/{flightId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+  }
+}
