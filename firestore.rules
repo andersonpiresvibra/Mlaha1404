@@ -33,15 +33,15 @@ service cloud.firestore {
     }
 
     function isValidFlight(data) {
-      return data.flightNumber is string && data.flightNumber.size() > 0 && data.flightNumber.size() < 20 &&
-             data.airline is string && data.airline.size() > 0 && data.airline.size() < 50 &&
+      return data.flightNumber is string && data.flightNumber.size() > 0 && data.flightNumber.size() <= 50 &&
+             data.airline is string && data.airline.size() > 0 && data.airline.size() <= 100 &&
              data.status in ['CHEGADA', 'FILA', 'DESIGNADO', 'AGUARDANDO', 'ABASTECENDO', 'FINALIZADO', 'CANCELADO'] &&
-             (!('registration' in data) || (data.registration is string && data.registration.size() < 20)) &&
-             (!('model' in data) || (data.model is string && data.model.size() < 20)) &&
-             (!('origin' in data) || (data.origin is string && data.origin.size() < 10)) &&
-             (!('destination' in data) || (data.destination is string && data.destination.size() < 10)) &&
-             (!('observations' in data) || (data.observations is string && data.observations.size() < 1000)) &&
-             (!('delayJustification' in data) || (data.delayJustification is string && data.delayJustification.size() < 500));
+             (!('registration' in data) || (data.registration is string && data.registration.size() <= 50)) &&
+             (!('model' in data) || (data.model is string && data.model.size() <= 100)) &&
+             (!('origin' in data) || (data.origin is string && data.origin.size() <= 50)) &&
+             (!('destination' in data) || (data.destination is string && data.destination.size() <= 50)) &&
+             (!('observations' in data) || (data.observations is string && data.observations.size() <= 2000)) &&
+             (!('delayJustification' in data) || (data.delayJustification is string && data.delayJustification.size() <= 1000));
     }
 
     function isValidOperator(data) {
@@ -57,6 +57,19 @@ service cloud.firestore {
              (!('brand' in data) || (data.brand is string && data.brand.size() < 50));
     }
 
+    function isValidMalhaBaseEntry(data) {
+      return (!('comp' in data) || (data.comp is string && data.comp.size() <= 100)) &&
+             (!('prefixo' in data) || (data.prefixo is string && data.prefixo.size() <= 50)) &&
+             (!('modelo' in data) || (data.modelo is string && data.modelo.size() <= 100)) &&
+             (!('vCheg' in data) || (data.vCheg is string && data.vCheg.size() <= 50)) &&
+             (!('eta' in data) || (data.eta is string && data.eta.size() <= 50)) &&
+             (!('vSaida' in data) || (data.vSaida is string && data.vSaida.size() <= 50)) &&
+             (!('icao' in data) || (data.icao is string && data.icao.size() <= 50)) &&
+             (!('cid' in data) || (data.cid is string && data.cid.size() <= 50)) &&
+             (!('pos' in data) || (data.pos is string && data.pos.size() <= 50)) &&
+             (!('etd' in data) || (data.etd is string && data.etd.size() <= 50));
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -66,6 +79,13 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidFlight(request.resource.data);
       allow update: if isAuthenticated() && isValidFlight(request.resource.data);
       allow delete: if isAdmin();
+    }
+
+    match /malha_base/{entryId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidMalhaBaseEntry(request.resource.data);
+      allow update: if isAuthenticated() && isValidMalhaBaseEntry(request.resource.data);
+      allow delete: if isAuthenticated();
     }
 
     match /operators/{operatorId} {

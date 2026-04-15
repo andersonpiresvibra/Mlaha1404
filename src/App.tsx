@@ -5,8 +5,9 @@ import { Spinner } from './components/ui/Spinner';
 import { useTheme } from './contexts/ThemeContext';
 import { X } from 'lucide-react';
 import { ShiftOperatorsSection } from './components/ShiftOperatorsSection';
+import { MalhaBase } from './components/MalhaBase';
 import { db, auth } from './firebase';
-import { collection, onSnapshot, query, orderBy, doc, setDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, setDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { handleFirestoreError, OperationType } from './lib/firestoreErrorHandler';
 
@@ -23,7 +24,7 @@ const App: React.FC = () => {
   const [globalAirlines, setGlobalAirlines] = useState<Airline[]>([]);
   const [globalAircraftDb, setGlobalAircraftDb] = useState<AircraftDatabaseEntry[]>([]);
   const [globalFleet, setGlobalFleet] = useState<any[]>([]); // Added fleet state
-  const [meshFlights, setMeshFlights] = useState<any[]>([]);
+  const [globalMalhaBase, setGlobalMalhaBase] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -100,6 +101,16 @@ const App: React.FC = () => {
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'fleet');
     });
+
+    let unsubMalhaBase: () => void;
+    if (user) {
+      unsubMalhaBase = onSnapshot(collection(db, 'malha_base'), (snapshot) => {
+        const malhaBase = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        setGlobalMalhaBase(malhaBase);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'malha_base');
+      });
+    }
 
     // Seeding inicial se estiver vazio (apenas para demonstração)
     const seedInitialData = async () => {
@@ -690,299 +701,10 @@ const App: React.FC = () => {
           }
         }
 
-        // Seed fixed flights if none exist
-        if (globalFlights.length === 0) {
-          const fixedFlights = [
-            { flightNumber: 'RG1554', destination: 'SBSG', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1556', destination: 'SBFZ', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1558', destination: 'SBFZ', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1560', destination: 'SBRF', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1566', destination: 'SBSL', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1570', destination: 'SBVC', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1578', destination: 'SBJU', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1580', destination: 'SBJU', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1586', destination: 'SBRF', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1588', destination: 'SBSG', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1642', destination: 'SBJP', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1644', destination: 'SBJP', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1652', destination: 'SBAR', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1654', destination: 'SBAR', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1658', destination: 'SBPS', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1668', destination: 'SBMO', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1670', destination: 'SBMO', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1672', destination: 'SBMO', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1676', destination: 'SBSG', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1678', destination: 'SBSG', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1680', destination: 'SBSG', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1690', destination: 'SBSV', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1692', destination: 'SBSV', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG1774', destination: 'SBFN', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7230', destination: 'SVMI', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7480', destination: 'SGAS', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7486', destination: 'SAME', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7630', destination: 'SUMU', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7638', destination: 'SLVR', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7640', destination: 'SABE', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7642', destination: 'SABE', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7644', destination: 'SABE', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7648', destination: 'SABE', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG7726', destination: 'SAAR', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9096', destination: 'SBSV', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9275', destination: 'SBFI', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9600', destination: 'SBGO', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9604', destination: 'SBPA', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9608', destination: 'SBCY', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9610', destination: 'SBBE', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9612', destination: 'SBSV', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9616', destination: 'SBVT', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9618', destination: 'SBSV', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9619', destination: 'SBVT', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9620', destination: 'SBBR', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9631', destination: 'SBMO', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9632', destination: 'SBRF', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9634', destination: 'SBCY', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9636', destination: 'SBBR', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9639', destination: 'SBJP', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'RG9640', destination: 'SBVT', airline: 'GOL LINHAS AEREAS', airlineCode: 'RG', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' }
-          ];
-
-          const latamFlights = [
-            { flightNumber: 'LA0604', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0608', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0610', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0629', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0714', destination: 'LEMD', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0715', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0753', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0762', destination: 'SUMU', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA0763', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA1300', destination: 'SGAS', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA1304', destination: 'SGAS', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA2425', destination: 'SPJC', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA2429', destination: 'SPJC', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3020', destination: 'SBFZ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3044', destination: 'SBSG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3105', destination: 'SBCG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3128', destination: 'SBCG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3134', destination: 'SBFL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3147', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3194', destination: 'SBTE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3196', destination: 'SBTE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3200', destination: 'SBFI', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3202', destination: 'SBFI', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3204', destination: 'SBFI', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3206', destination: 'SBFI', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3207', destination: 'SBAR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3208', destination: 'SBUL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3210', destination: 'SBUL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3216', destination: 'SBMG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3218', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3222', destination: 'SBVT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3228', destination: 'SBBE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3230', destination: 'SBBE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3232', destination: 'SBBE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3239', destination: 'SBSL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3240', destination: 'SBPS', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3244', destination: 'SBPS', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3254', destination: 'SBIL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3257', destination: 'SBBR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3261', destination: 'SBSV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3263', destination: 'SBBR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3265', destination: 'SBBR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3266', destination: 'SBGO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3270', destination: 'SBCY', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3276', destination: 'SBCH', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3282', destination: 'SBCT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3284', destination: 'SBCT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3286', destination: 'SBCT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3288', destination: 'SBCT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3296', destination: 'SBEG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3300', destination: 'SBFL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3302', destination: 'SBFL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3304', destination: 'SBNF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3306', destination: 'SBSV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3314', destination: 'SBPS', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3316', destination: 'SBFZ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3330', destination: 'SBVT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3332', destination: 'SBVT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3334', destination: 'SBVT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3336', destination: 'SBVT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3340', destination: 'SBGL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3344', destination: 'SBCF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3346', destination: 'SBSV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3350', destination: 'SBSV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3352', destination: 'SBGL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3354', destination: 'SBSV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3366', destination: 'SBGL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3372', destination: 'SBGO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3374', destination: 'SBRF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3376', destination: 'SBRF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3378', destination: 'SBRF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3380', destination: 'SBRF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3388', destination: 'SBPL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3394', destination: 'SBPJ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3396', destination: 'SBPS', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3398', destination: 'SBMK', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3401', destination: 'SBCA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3404', destination: 'SBNF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3408', destination: 'SBNF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3416', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3418', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3420', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3422', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3424', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3438', destination: 'SBSG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3440', destination: 'SBSG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3446', destination: 'SBMO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3448', destination: 'SBMO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3450', destination: 'SBMO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3452', destination: 'SBMO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3458', destination: 'SBRF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3470', destination: 'SBJE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3506', destination: 'SBFZ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3514', destination: 'SBPF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3518', destination: 'SBGO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3521', destination: 'SBDO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3529', destination: 'SBBR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3534', destination: 'SBCG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3538', destination: 'SBVC', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3544', destination: 'SBGO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3545', destination: 'SBCF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3546', destination: 'SBGO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3550', destination: 'SBRJ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3552', destination: 'SBCF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3556', destination: 'SBCF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3560', destination: 'SBEG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3562', destination: 'SBEG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3568', destination: 'SBPV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3576', destination: 'SBCY', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3604', destination: 'SBBE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3612', destination: 'SBSL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3618', destination: 'SBUL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3620', destination: 'SBCY', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3636', destination: 'SBJP', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3638', destination: 'SBCY', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3652', destination: 'SBSV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3664', destination: 'SBSI', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3670', destination: 'SBBR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3676', destination: 'SBRF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3690', destination: 'SBLO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3698', destination: 'SBGL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3707', destination: 'SBMO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3744', destination: 'SBAR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3765', destination: 'SBFZ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3790', destination: 'SBCF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3828', destination: 'SBFN', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3830', destination: 'SBJU', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3832', destination: 'SBPJ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3834', destination: 'SBSG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3836', destination: 'SBSR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3838', destination: 'SBCX', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3842', destination: 'SBTE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3872', destination: 'SBBE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3874', destination: 'SBGL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3880', destination: 'SBRP', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3960', destination: 'SBIZ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA3974', destination: 'SBRJ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4518', destination: 'SBFL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4522', destination: 'SBPL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4524', destination: 'SBPA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4531', destination: 'SBLO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4536', destination: 'SBJP', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4540', destination: 'SBCF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4548', destination: 'SBGL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4549', destination: 'SBMG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4550', destination: 'SBCT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4596', destination: 'SBBE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4602', destination: 'SBIL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4662', destination: 'SBJV', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4672', destination: 'SBGL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4676', destination: 'SBBR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4702', destination: 'SBAR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4703', destination: 'SBBR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4708', destination: 'SBCT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4726', destination: 'SBJP', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4742', destination: 'SBSL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4770', destination: 'SBJA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4776', destination: 'SBFZ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4904', destination: 'SKBO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA4908', destination: 'SKBO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8016', destination: 'SUMU', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8019', destination: 'SAME', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8032', destination: 'SABE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8034', destination: 'SABE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8038', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8048', destination: 'SACO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8058', destination: 'FAOR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8068', destination: 'LFPG', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8070', destination: 'EDDF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8072', destination: 'LIMC', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8076', destination: 'LEMD', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8078', destination: 'EHAM', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8084', destination: 'EGLL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8086', destination: 'KLAX', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8098', destination: 'SPJC', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8104', destination: 'SCEL', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8110', destination: 'SUMU', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8112', destination: 'MMMX', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8120', destination: 'LIRF', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8122', destination: 'SPJC', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8126', destination: 'KMCO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8130', destination: 'SAEZ', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8140', destination: 'SABE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8142', destination: 'SABE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8146', destination: 'LPPT', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8176', destination: 'KJFK', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8180', destination: 'KJFK', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8186', destination: 'KMCO', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8190', destination: 'KMIA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8192', destination: 'SABE', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA8194', destination: 'KMIA', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA9400', destination: 'SBGR', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'LA9437', destination: 'SBTC', airline: 'LATAM AIRLINES', airlineCode: 'LA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' }
-          ];
-
-          const copaFlights = [
-            { flightNumber: 'CM0702', destination: 'MPTO', airline: 'COPA AIRLINES', airlineCode: 'CM', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'CM0744', destination: 'MPTO', airline: 'COPA AIRLINES', airlineCode: 'CM', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'CM0758', destination: 'MPTO', airline: 'COPA AIRLINES', airlineCode: 'CM', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'CM0774', destination: 'MPTO', airline: 'COPA AIRLINES', airlineCode: 'CM', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'CM0811', destination: 'MPTO', airline: 'COPA AIRLINES', airlineCode: 'CM', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'CM0841', destination: 'MPTO', airline: 'COPA AIRLINES', airlineCode: 'CM', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' }
-          ];
-
-          const americanFlights = [
-            { flightNumber: 'AA0906', destination: 'KMIA', airline: 'AMERICAN AIRLINES', airlineCode: 'AA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'AA0930', destination: 'KMIA', airline: 'AMERICAN AIRLINES', airlineCode: 'AA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'AA0950', destination: 'KJFK', airline: 'AMERICAN AIRLINES', airlineCode: 'AA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'AA0858', destination: 'KMIA', airline: 'AMERICAN AIRLINES', airlineCode: 'AA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'AA0962', destination: 'KDFW', airline: 'AMERICAN AIRLINES', airlineCode: 'AA', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' }
-          ];
-
-          const deltaFlights = [
-            { flightNumber: 'DL0104', destination: 'KATL', airline: 'DELTA AIRLINES', airlineCode: 'DL', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'DL0226', destination: 'KJFK', airline: 'DELTA AIRLINES', airlineCode: 'DL', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'DL0268', destination: 'KATL', airline: 'DELTA AIRLINES', airlineCode: 'DL', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'DL9926', destination: 'KJFK', airline: 'DELTA AIRLINES', airlineCode: 'DL', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' }
-          ];
-
-          const tapFlights = [
-            { flightNumber: 'TP0082', destination: 'LPPT', airline: 'TAP AIR PORTUGAL', airlineCode: 'TP', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'TP0084', destination: 'LPPT', airline: 'TAP AIR PORTUGAL', airlineCode: 'TP', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'TP0088', destination: 'LPPT', airline: 'TAP AIR PORTUGAL', airlineCode: 'TP', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' },
-            { flightNumber: 'TP0094', destination: 'LPPR', airline: 'TAP AIR PORTUGAL', airlineCode: 'TP', status: 'CHEGADA', fuelStatus: 0, origin: 'SBGL' }
-          ];
-
-          for (const f of [...fixedFlights, ...latamFlights, ...copaFlights, ...americanFlights, ...deltaFlights, ...tapFlights]) {
-            try {
-              await addDoc(collection(db, 'flights'), f);
-            } catch (e) {
-              console.error("Failed to seed fixed flight:", e);
-            }
-          }
-        }
-
-        localStorage.setItem('jetfuel_seeded_v3', 'true');
+        // Removed fixed flights seeding as requested.
+        // The flights collection will be populated by the Malha Base.
+        
+        localStorage.setItem('jetfuel_seeded_v7', 'true');
       }, 5000);
     };
     
@@ -994,6 +716,7 @@ const App: React.FC = () => {
       unsubAirlines();
       unsubAircraftDb();
       unsubFleet();
+      if (unsubMalhaBase) unsubMalhaBase();
     };
   }, [user]);
 
@@ -1001,7 +724,7 @@ const App: React.FC = () => {
   const persistFlight = async (flight: Partial<FlightData>) => {
     try {
       if (!flight.id) {
-        await addDoc(collection(db, 'flights'), { ...flight, createdAt: serverTimestamp() });
+        await addDoc(collection(db, 'flights'), { ...flight, createdAt: new Date().toISOString() });
       } else {
         const { id, ...data } = flight;
         await setDoc(doc(db, 'flights', id), data, { merge: true });
@@ -1014,7 +737,7 @@ const App: React.FC = () => {
   const persistOperator = async (operator: Partial<OperatorProfile>) => {
     try {
       if (!operator.id) {
-        await addDoc(collection(db, 'operators'), { ...operator, createdAt: serverTimestamp() });
+        await addDoc(collection(db, 'operators'), { ...operator, createdAt: new Date().toISOString() });
       } else {
         const { id, ...data } = operator;
         await setDoc(doc(db, 'operators', id), data, { merge: true });
@@ -1038,7 +761,7 @@ const App: React.FC = () => {
       await addDoc(collection(db, 'finalized_flights'), {
         flightId: flight.id,
         flightData: flight,
-        finalizedAt: serverTimestamp()
+        finalizedAt: new Date().toISOString()
       });
       // 2. Remover da malha ativa
       await deleteDoc(doc(db, 'flights', flight.id));
@@ -1140,7 +863,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className={`${isDarkMode ? 'dark bg-slate-950' : 'bg-slate-50'} ${isPseudoFullscreen ? 'fixed inset-0 z-[9999]' : 'h-screen w-screen'} overflow-hidden flex flex-col`}>
+    <div className={`${isDarkMode ? 'dark bg-slate-950' : 'bg-slate-50'} fixed inset-0 overflow-hidden flex flex-col`}>
       {authError && !user && (
         <div className="fixed inset-0 z-[10000] bg-slate-900/90 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-slate-800 border border-slate-700 p-8 rounded-2xl max-w-md w-full shadow-2xl text-center">
@@ -1174,6 +897,8 @@ const App: React.FC = () => {
         globalSearchTerm={globalSearchTerm}
         setGlobalSearchTerm={setGlobalSearchTerm}
         onSync={handleSync}
+        currentView={view}
+        onViewChange={setView}
       />
       
       <div id="subheader-portal-target" className="w-full shrink-0 z-[60] relative"></div>
@@ -1193,9 +918,8 @@ const App: React.FC = () => {
                     aircraftDb={globalAircraftDb}
                     initialTab={gridOpsInitialTab}
                     globalSearchTerm={globalSearchTerm}
-                    meshFlights={meshFlights}
-                    setMeshFlights={setMeshFlights}
                     onOpenShiftOperators={() => setView('SHIFT_OPERATORS')}
+                    onOpenMalhaBase={() => setView('MALHA_BASE')}
                     pendingAction={pendingAction}
                     setPendingAction={setPendingAction}
                     onFinalizeFlight={finalizeFlight}
@@ -1217,6 +941,12 @@ const App: React.FC = () => {
                         setView('GRID_OPS');
                     }}
                     globalSearchTerm={globalSearchTerm}
+                  />
+                )}
+                {view === 'MALHA_BASE' && (
+                  <MalhaBase 
+                    entries={globalMalhaBase}
+                    onClose={() => setView('GRID_OPS')}
                   />
                 )}
               </Suspense>

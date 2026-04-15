@@ -168,7 +168,21 @@ export interface FlightData {
   isMeshFlight?: boolean; // Se é um voo da malha base não ativado
 }
 
-export type ViewState = 'GRID_OPS' | 'SHIFT_OPERATORS';
+export interface MalhaBaseEntry {
+  id: string;
+  comp: string;
+  prefixo: string;
+  modelo: string;
+  vCheg: string;
+  eta: string;
+  vSaida: string;
+  icao: string;
+  cid: string;
+  pos: string;
+  etd: string;
+}
+
+export type ViewState = 'GRID_OPS' | 'SHIFT_OPERATORS' | 'MALHA_BASE';
 
 export interface AircraftType {
   id: string;

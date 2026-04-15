@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FlightStatus, FlightData, FlightLog, LogType, OperatorProfile, Vehicle, Airline, AircraftDatabaseEntry } from '../types';
 import { db } from '../firebase';
-import { doc, addDoc, collection, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, addDoc, collection, deleteDoc } from 'firebase/firestore';
 
 import { FlightDetailsModal } from './FlightDetailsModal';
 import { StatusBadge } from './SharedStats';
@@ -20,7 +20,7 @@ import {
   MessageCircle, MoreVertical, Search, Settings, Upload, RefreshCw, Network
 } from 'lucide-react';
 
-type Tab = 'GERAL' | 'CHEGADA' | 'FILA' | 'DESIGNADOS' | 'ABASTECENDO' | 'FINALIZADO' | 'MALHA';
+type Tab = 'GERAL' | 'CHEGADA' | 'FILA' | 'DESIGNADOS' | 'ABASTECENDO' | 'FINALIZADO';
 type SortDirection = 'asc' | 'desc' | null;
 
 interface SortConfig {
@@ -54,9 +54,8 @@ interface GridOpsProps {
     aircraftDb: AircraftDatabaseEntry[];
     initialTab?: Tab;
     globalSearchTerm?: string;
-    meshFlights?: any[];
-    setMeshFlights?: (flights: any[]) => void;
     onOpenShiftOperators?: () => void;
+    onOpenMalhaBase?: () => void;
     pendingAction?: 'CREATE' | 'IMPORT' | null;
     setPendingAction?: (action: 'CREATE' | 'IMPORT' | null) => void;
 }
@@ -170,9 +169,8 @@ export const GridOps: React.FC<GridOpsProps> = ({
     aircraftDb,
     initialTab = 'GERAL', 
     globalSearchTerm = '',
-    meshFlights = [],
-    setMeshFlights,
     onOpenShiftOperators,
+    onOpenMalhaBase,
     pendingAction,
     setPendingAction
 }) => {
@@ -220,7 +218,6 @@ export const GridOps: React.FC<GridOpsProps> = ({
   const [observationModalFlight, setObservationModalFlight] = useState<FlightData | null>(null);
   const [newObservation, setNewObservation] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
   
   // Delay Justification Modal States
   const [delayModalFlightId, setDelayModalFlightId] = useState<string | null>(null);
@@ -242,7 +239,6 @@ export const GridOps: React.FC<GridOpsProps> = ({
 
   const logsEndRef = useRef<HTMLDivElement>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
-  const optionsMenuRef = useRef<HTMLDivElement>(null);
 
   const handleCreateFlight = async (newFlight: Partial<FlightData>) => {
     await onUpdateFlights(newFlight);
@@ -262,9 +258,6 @@ export const GridOps: React.FC<GridOpsProps> = ({
     function handleClickOutside(event: MouseEvent) {
       if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
         setOpenMenuId(null);
-      }
-      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
-        setShowOptionsDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -911,52 +904,36 @@ export const GridOps: React.FC<GridOpsProps> = ({
     );
   }
 
-  const optionsDropdownContent = (
-    <div className="relative z-[100]" ref={optionsMenuRef}>
+  const optionsDropdownItems = (
+    <>
         <button 
-            onClick={() => setShowOptionsDropdown(!showOptionsDropdown)}
-            className={`flex items-center gap-2 px-6 py-2 rounded-md border border-[#FEDC00] transition-all font-bold uppercase tracking-wider text-[11px] bg-[#FEDC00] text-[#4e4141] hover:bg-[#e5c600] shadow-sm btn-options-subheader`}
+            onClick={() => {
+                setIsCreateModalOpen(true);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-indigo-500/10 hover:text-indigo-400' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
         >
-            <span>Opções</span>
+            <Plus size={14} />
+            Criar Voo
         </button>
-
-        {showOptionsDropdown && (
-            <div className={`absolute right-0 top-10 w-56 ${isDarkMode ? 'bg-slate-900 border-emerald-500/30' : 'bg-white border-emerald-500/30'} border-[0.5px] rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2`}>
-                <div className="p-2 space-y-1">
-                    <button 
-                        onClick={() => {
-                            setIsCreateModalOpen(true);
-                            setShowOptionsDropdown(false);
-                        }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-indigo-500/10 hover:text-indigo-400' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
-                    >
-                        <Plus size={16} />
-                        Criar Voo
-                    </button>
-                    <button 
-                        onClick={() => {
-                            setIsImportModalOpen(true);
-                            setShowOptionsDropdown(false);
-                        }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-400' : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'}`}
-                    >
-                        <Upload size={16} />
-                        Importar
-                    </button>
-                    <button 
-                        onClick={() => {
-                            if (onOpenShiftOperators) onOpenShiftOperators();
-                            setShowOptionsDropdown(false);
-                        }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-blue-500/10 hover:text-blue-400' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'}`}
-                    >
-                        <UserPlus size={16} />
-                        Operadores do Turno
-                    </button>
-                </div>
-            </div>
-        )}
-    </div>
+        <button 
+            onClick={() => {
+                setIsImportModalOpen(true);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-400' : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'}`}
+        >
+            <Upload size={14} />
+            Importar
+        </button>
+        <button 
+            onClick={() => {
+                if (onOpenShiftOperators) onOpenShiftOperators();
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-blue-500/10 hover:text-blue-400' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'}`}
+        >
+            <UserPlus size={14} />
+            Operadores do Turno
+        </button>
+    </>
   );
 
   const subheaderContent = (
@@ -976,7 +953,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
       
       {/* HEADER E TABS */}
       {portalTarget ? createPortal(subheaderContent, portalTarget) : subheaderContent}
-      {optionsPortalTarget ? createPortal(optionsDropdownContent, optionsPortalTarget) : null}
+      {optionsPortalTarget ? createPortal(optionsDropdownItems, optionsPortalTarget) : null}
       <div className={`h-12 shrink-0 flex border-b ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white'} z-30 overflow-hidden`}>
         <nav className="flex w-full">
                 {tabs.map((tab) => {
