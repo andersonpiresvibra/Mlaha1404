@@ -192,6 +192,7 @@ export interface Airline {
   iata: string;
   icao: string;
   logoUrl?: string;
+  allowedModels?: string[];
 }
 
 export interface AircraftDatabaseEntry {
@@ -199,6 +200,13 @@ export interface AircraftDatabaseEntry {
   registration: string;
   model: string;
   airlineIata: string;
+}
+
+export interface FleetRegistry {
+  id: string;
+  fleetNumber: string;
+  type: 'SRV' | 'CTA';
+  brand: string;
 }
 
 export type DetailedVehicleStatus = 'OPERACIONAL' | 'EM MANUTENÇÃO' | 'INATIVO';

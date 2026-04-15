@@ -74,7 +74,8 @@
       "properties": {
         "flightId": { "type": "string" },
         "flightData": { "$ref": "Flight" },
-        "finalizedAt": { "type": "string", "format": "date-time" }
+        "finalizedAt": { "type": "string", "format": "date-time" },
+        "operationDate": { "type": "string", "description": "Date of operation for analytics (YYYY-MM-DD)" }
       }
     },
     "Airline": {
@@ -85,7 +86,8 @@
         "name": { "type": "string" },
         "iata": { "type": "string" },
         "icao": { "type": "string" },
-        "logoUrl": { "type": "string" }
+        "logoUrl": { "type": "string" },
+        "allowedModels": { "type": "array", "items": { "type": "string" } }
       }
     },
     "Aircraft": {
@@ -96,6 +98,16 @@
         "registration": { "type": "string" },
         "model": { "type": "string" },
         "airlineIata": { "type": "string" }
+      }
+    },
+    "FleetRegistry": {
+      "title": "Fleet Registry",
+      "description": "Fixed database of vehicles",
+      "type": "object",
+      "properties": {
+        "fleetNumber": { "type": "string", "pattern": "^\\d{4}$" },
+        "type": { "type": "string", "enum": ["SRV", "CTA"] },
+        "brand": { "type": "string" }
       }
     }
   },
@@ -119,6 +131,10 @@
     "/aircraft_database/{aircraftId}": {
       "schema": "Aircraft",
       "description": "Aircraft registry"
+    },
+    "/fleet/{fleetId}": {
+      "schema": "FleetRegistry",
+      "description": "Fixed fleet database"
     }
   }
 }

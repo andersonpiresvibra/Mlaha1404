@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { OperatorProfile } from '../types';
+import { OperatorProfile, FleetRegistry } from '../types';
 import { X, Plus, Trash2, BusFront, User, ArrowLeft, Upload, UserPlus, Search } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ShiftOperatorsSectionProps {
     onClose: () => void;
     operators: OperatorProfile[];
+    fleet?: FleetRegistry[];
     onUpdateOperators: (operator: Partial<OperatorProfile>) => Promise<void>;
     onRemoveOperator: (id: string) => Promise<void>;
     onOpenCreateModal?: () => void;
@@ -17,6 +18,7 @@ interface ShiftOperatorsSectionProps {
 export const ShiftOperatorsSection: React.FC<ShiftOperatorsSectionProps> = ({ 
     onClose, 
     operators, 
+    fleet = [],
     onUpdateOperators, 
     onRemoveOperator,
     onOpenCreateModal, 
@@ -138,13 +140,21 @@ export const ShiftOperatorsSection: React.FC<ShiftOperatorsSectionProps> = ({
                         <input 
                             type="text"
                             value={op.assignedVehicle || ''}
-                            onChange={(e) => handleUpdateOperator(op.id, 'assignedVehicle', e.target.value.toUpperCase())}
+                            onChange={(e) => {
+                                const val = e.target.value.toUpperCase();
+                                handleUpdateOperator(op.id, 'assignedVehicle', val);
+                                const foundFleet = fleet.find(f => f.fleetNumber === val);
+                                if (foundFleet) {
+                                    handleUpdateOperator(op.id, 'fleetCapability', foundFleet.type);
+                                }
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     (e.target as HTMLInputElement).blur();
                                 }
                             }}
                             placeholder="FROTA"
+                            list={`fleet-list-${op.id}`}
                             className={`w-full pl-[6px] py-[3px] text-[10px] font-mono font-bold rounded shadow-sm focus:ring-2 outline-none uppercase text-center transition-all ${
                                 isCTA
                                 ? 'focus:ring-yellow-500/20 focus:border-yellow-500'
@@ -155,6 +165,11 @@ export const ShiftOperatorsSection: React.FC<ShiftOperatorsSectionProps> = ({
                                 : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400'
                             }`}
                         />
+                        <datalist id={`fleet-list-${op.id}`}>
+                            {fleet.map(f => (
+                                <option key={f.id} value={f.fleetNumber}>{f.brand} ({f.type})</option>
+                            ))}
+                        </datalist>
                     </div>
                     {op.assignedVehicle && (
                         <button
@@ -238,15 +253,29 @@ export const ShiftOperatorsSection: React.FC<ShiftOperatorsSectionProps> = ({
                     <input 
                         type="text"
                         value={fleetInput}
-                        onChange={e => setFleetInput(e.target.value)}
+                        onChange={e => {
+                            const val = e.target.value.toUpperCase();
+                            setFleetInput(val);
+                            // Auto-select type if fleet exists in registry
+                            const foundFleet = fleet.find(f => f.fleetNumber === val);
+                            if (foundFleet) {
+                                setFleetTypeInput(foundFleet.type);
+                            }
+                        }}
                         onKeyDown={e => e.key === 'Enter' && handleAdd()}
                         placeholder="FROTA"
+                        list="fleet-list"
                         className={`w-full border text-[10px] px-3 py-1.5 h-[32px] rounded-lg font-mono font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all uppercase text-center pr-6 ${
                             isDarkMode 
                             ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500' 
                             : 'bg-white border-white/20 text-slate-900 placeholder:text-slate-400'
                         }`}
                     />
+                    <datalist id="fleet-list">
+                        {fleet.map(f => (
+                            <option key={f.id} value={f.fleetNumber}>{f.brand} ({f.type})</option>
+                        ))}
+                    </datalist>
                     {fleetInput && (
                         <button 
                             onClick={() => setFleetInput('')}

@@ -21,7 +21,7 @@ interface CreateFlightModalProps {
 export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, onCreate, airlines, aircraftDb }) => {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
-    airlineCode: '',
+    airlineName: '',
     registration: '',
     model: '',
     flightNumber: '', // Chegada
@@ -34,17 +34,59 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value.toUpperCase() };
+      
+      // Auto-fill logic based on Registration (Prefixo)
+      if (name === 'registration') {
+        const selectedAircraft = aircraftDb.find(a => a.registration === value.toUpperCase());
+        if (selectedAircraft) {
+          newData.model = selectedAircraft.model;
+          const airline = airlines.find(a => a.iata === selectedAircraft.airlineIata);
+          if (airline) {
+            newData.airlineName = airline.name;
+          }
+        }
+      }
+
+      // Auto-fill flight number prefix based on airline
+      if (name === 'airlineName' || (name === 'registration' && newData.airlineName !== prev.airlineName)) {
+        const airlineNameInput = newData.airlineName.toUpperCase();
+        const airline = airlines.find(a => 
+          a.name.toUpperCase() === airlineNameInput || 
+          a.iata === airlineNameInput || 
+          a.icao === airlineNameInput
+        );
+        
+        if (airline) {
+          const prefix = `${airline.iata}-`;
+          // Only auto-fill if the field is empty or just contains a prefix
+          if (!newData.flightNumber || /^[A-Z0-9]{2,3}-?$/.test(newData.flightNumber)) {
+            newData.flightNumber = prefix;
+          }
+          if (!newData.departureFlightNumber || /^[A-Z0-9]{2,3}-?$/.test(newData.departureFlightNumber)) {
+            newData.departureFlightNumber = prefix;
+          }
+        }
+      }
+
+      return newData;
+    });
   };
 
   const handleCreate = () => {
     // Basic validation
-    if (!formData.registration || !formData.airlineCode || !formData.departureFlightNumber || !formData.etd || !formData.flightNumber) return;
+    if (!formData.registration || !formData.airlineName || !formData.departureFlightNumber || !formData.etd || !formData.flightNumber) return;
 
-    const airlineCode = formData.airlineCode.toUpperCase();
-    const airline = airlines.find(a => a.iata === airlineCode || a.icao === airlineCode || a.name.toUpperCase() === airlineCode);
-    const airlineName = airline ? airline.name : 'OUTRA';
-    const finalAirlineCode = airline ? airline.iata : airlineCode;
+    const airlineNameInput = formData.airlineName.toUpperCase();
+    // Find airline by exact name match first, then by IATA, then by ICAO
+    let airline = airlines.find(a => a.name.toUpperCase() === airlineNameInput);
+    if (!airline) {
+        airline = airlines.find(a => a.iata === airlineNameInput || a.icao === airlineNameInput);
+    }
+    
+    const airlineName = airline ? airline.name : formData.airlineName.toUpperCase();
+    const finalAirlineCode = airline ? airline.iata : 'UNK';
 
     const newFlight: Partial<FlightData> = {
       airline: airlineName,
@@ -124,18 +166,18 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
               <div className="relative group">
                  <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                  <input 
-                  name="airlineCode"
-                  value={formData.airlineCode}
+                  name="airlineName"
+                  value={formData.airlineName}
                   onChange={handleChange}
-                  placeholder="RG"
+                  placeholder="GOL, LATAM..."
                   list="airlines-list"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 uppercase placeholder:text-slate-300 transition-all"
                   required
                 />
-                {formData.airlineCode && (
+                {formData.airlineName && (
                   <button 
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, airlineCode: '' }))}
+                    onClick={() => setFormData(prev => ({ ...prev, airlineName: '' }))}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     <X size={14} />
@@ -195,7 +237,7 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
                   name="flightNumber"
                   value={formData.flightNumber}
                   onChange={handleChange}
-                  placeholder="RG-1234"
+                  placeholder="LA-1234"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 uppercase placeholder:text-slate-300 transition-all"
                 />
               </div>
@@ -240,7 +282,7 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
                   name="departureFlightNumber"
                   value={formData.departureFlightNumber}
                   onChange={handleChange}
-                  placeholder="RG-..."
+                  placeholder="LA-..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 uppercase placeholder:text-slate-300 transition-all"
                   required
                 />
@@ -290,24 +332,50 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
 
           {/* Datalists for suggestions */}
           <datalist id="airlines-list">
-            {airlines.map(a => (
-              <option key={a.id} value={a.iata}>{a.name}</option>
-            ))}
+            {(() => {
+              // Deduplicate airlines by IATA code to prevent multiple entries for the same airline
+              const uniqueAirlines = Array.from(new Map(airlines.map(a => [a.iata, a])).values());
+              return uniqueAirlines.map(a => (
+                <option key={a.id} value={a.name}>{a.iata}</option>
+              ));
+            })()}
           </datalist>
           <datalist id="prefixos-list">
-            {aircraftDb
-              .filter(a => !formData.airlineCode || a.airlineIata === formData.airlineCode.toUpperCase())
-              .map(a => (
-                <option key={a.id} value={a.registration}>{a.model}</option>
-              ))}
+            {(() => {
+              const airlineNameInput = formData.airlineName.toUpperCase();
+              let selectedAirline = airlines.find(a => a.name.toUpperCase() === airlineNameInput);
+              if (!selectedAirline) {
+                  selectedAirline = airlines.find(a => a.iata === airlineNameInput || a.icao === airlineNameInput);
+              }
+              const iataFilter = selectedAirline ? selectedAirline.iata : null;
+              const filteredAircraft = aircraftDb.filter(a => !iataFilter || a.airlineIata === iataFilter);
+              
+              // Deduplicate by registration
+              const uniqueRegs = Array.from(new Set(filteredAircraft.map(a => a.registration)));
+              
+              return uniqueRegs.map(reg => {
+                const ac = filteredAircraft.find(a => a.registration === reg);
+                return <option key={reg} value={reg}>{ac?.model}</option>;
+              });
+            })()}
           </datalist>
           <datalist id="modelos-list">
-            {Array.from(new Set(aircraftDb
-              .filter(a => !formData.airlineCode || a.airlineIata === formData.airlineCode.toUpperCase())
-              .map(a => a.model)))
-              .map(model => (
+            {(() => {
+              const airlineNameInput = formData.airlineName.toUpperCase();
+              let selectedAirline = airlines.find(a => a.name.toUpperCase() === airlineNameInput);
+              if (!selectedAirline) {
+                  selectedAirline = airlines.find(a => a.iata === airlineNameInput || a.icao === airlineNameInput);
+              }
+              const iataFilter = selectedAirline ? selectedAirline.iata : null;
+              const filteredAircraft = aircraftDb.filter(a => !iataFilter || a.airlineIata === iataFilter);
+              
+              // Deduplicate by model
+              const uniqueModels = Array.from(new Set(filteredAircraft.map(a => a.model)));
+              
+              return uniqueModels.map(model => (
                 <option key={model} value={model} />
-              ))}
+              ));
+            })()}
           </datalist>
 
           {isPriority() && (

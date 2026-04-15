@@ -51,6 +51,12 @@ service cloud.firestore {
              (!('assignedVehicle' in data) || (data.assignedVehicle is string && data.assignedVehicle.size() < 20));
     }
 
+    function isValidFleet(data) {
+      return data.fleetNumber is string && data.fleetNumber.matches('^\\d{4}$') &&
+             data.type in ['SRV', 'CTA'] &&
+             (!('brand' in data) || (data.brand is string && data.brand.size() < 50));
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -83,12 +89,20 @@ service cloud.firestore {
 
     match /airlines/{airlineId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
     match /aircraft_database/{aircraftId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    match /fleet/{fleetId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidFleet(request.resource.data);
+      allow update, delete: if isAdmin() && isValidFleet(request.resource.data);
     }
   }
 }
