@@ -62,6 +62,9 @@ interface GridOpsProps {
 }
 
 const parseTime = (timeStr: string) => {
+    if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) {
+        return new Date(NaN); // Return invalid date
+    }
     const [hours, minutes] = timeStr.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
@@ -107,9 +110,15 @@ const DELAY_REASONS = [
 ];
 
 const calculateLandingETA = (blockTime: string) => {
-    const date = parseTime(blockTime);
-    date.setMinutes(date.getMinutes() - 15);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (!blockTime || blockTime === '--:--') return '--:--';
+    try {
+        const date = parseTime(blockTime);
+        if (isNaN(date.getTime())) return '--:--';
+        date.setMinutes(date.getMinutes() - 15);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+        return '--:--';
+    }
 };
 
 // Helper para converter datas do Firebase (Timestamp ou String) para Date
@@ -765,7 +774,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
             label: 'CALÇADA', 
             color: isDarkMode ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-emerald-600 bg-emerald-50 border-emerald-200' 
         };
-        if (f.isOnGround) return { 
+        if (f.isOnGround || f.eta === '--:--' || isNaN(minutesToETA)) return { 
             label: 'SOLO', 
             color: isDarkMode ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' : 'text-indigo-600 bg-indigo-50 border-indigo-200' 
         };
@@ -785,6 +794,10 @@ export const GridOps: React.FC<GridOpsProps> = ({
         if (f.isStandby) return { 
             label: 'STAND-BY', 
             color: isDarkMode ? 'text-slate-400 bg-slate-800 border-slate-600' : 'text-slate-600 bg-slate-100 border-slate-300' 
+        };
+        if (isNaN(minutesToETD)) return {
+            label: 'AGUARDANDO',
+            color: isDarkMode ? 'text-slate-300 bg-slate-800 border-slate-600' : 'text-slate-600 bg-slate-100 border-slate-300'
         };
         if (minutesToETD < 20) return { 
             label: '-20M CRÍTICO', 

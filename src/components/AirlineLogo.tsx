@@ -7,7 +7,8 @@ interface AirlineLogoProps {
 }
 
 const AIRLINE_INFO: Record<string, { iata: string, name: string }> = {
-  'RG': { iata: 'G3', name: 'GOL' },
+  'RG': { iata: 'G3', name: 'GOL' }, // GOL uses G3 for IATA, but RG for flight numbers in this system
+  'G3': { iata: 'G3', name: 'GOL' },
   'LA': { iata: 'LA', name: 'LATAM' },
   'AD': { iata: 'AD', name: 'AZUL' },
   'TP': { iata: 'TP', name: 'TAP' },

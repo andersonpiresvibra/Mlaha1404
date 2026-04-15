@@ -94,10 +94,10 @@ export const CreateFlightModal: React.FC<CreateFlightModalProps> = ({ onClose, o
       registration: formData.registration.toUpperCase(),
       model: formData.model.toUpperCase(),
       flightNumber: formData.flightNumber.toUpperCase(),
-      eta: formData.eta,
+      eta: formData.eta || '--:--', // Handle empty ETA
       departureFlightNumber: formData.departureFlightNumber.toUpperCase(),
       destination: formData.destination.toUpperCase(),
-      positionId: formData.positionId,
+      positionId: formData.positionId || '000', // Default position if empty
       etd: formData.etd,
       origin: 'SBGL', // Default
       fuelStatus: 0,
