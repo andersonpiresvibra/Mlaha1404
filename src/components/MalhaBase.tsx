@@ -56,30 +56,70 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
         const workbook = read(data, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const parsedData = utils.sheet_to_json<any[]>(sheet, { header: 1 });
+        const parsedData = utils.sheet_to_json<any[]>(sheet, { header: 1, raw: false });
         
+        if (parsedData.length === 0) return;
+
+        // Try to detect headers in the first row
+        const firstRow = (parsedData[0] || []).map(h => String(h || '').toUpperCase().trim());
+        const hasHeaders = firstRow.some(h => ['COMP', 'PREFIXO', 'MODELO', 'ETA', 'ETD', 'ICAO', 'POS'].some(k => h.includes(k)));
+        
+        const colMap = {
+          comp: firstRow.findIndex(h => h.includes('COMP') || h.includes('CIA')),
+          prefixo: firstRow.findIndex(h => h.includes('PREFIXO') || h.includes('MATR') || h.includes('REG')),
+          modelo: firstRow.findIndex(h => h.includes('MODELO') || h.includes('EQUIP') || h.includes('TIPO')),
+          vCheg: firstRow.findIndex(h => h.includes('V.CHEG') || h.includes('VOO CHEG') || h.includes('FLIGHT IN')),
+          eta: firstRow.findIndex(h => h.includes('ETA') || h.includes('POUSO') || h.includes('PREV')),
+          vSaida: firstRow.findIndex(h => h.includes('V.SAIDA') || h.includes('VOO SAI') || h.includes('FLIGHT OUT')),
+          icao: firstRow.findIndex(h => h.includes('ICAO') || h.includes('ORIGEM') || h.includes('PROC')),
+          cid: firstRow.findIndex(h => h.includes('CID') || h.includes('DESTINO')),
+          pos: firstRow.findIndex(h => h.includes('POS') || h.includes('BOX') || h.includes('STAND')),
+          etd: firstRow.findIndex(h => h.includes('ETD') || h.includes('DECO') || h.includes('PARTIDA'))
+        };
+
+        // Helper to get index with fallback
+        const getIdx = (key: keyof typeof colMap, defaultIdx: number) => colMap[key] === -1 ? defaultIdx : colMap[key];
+
+        // Helper to format values and handle Excel serial times
+        const formatVal = (val: any, isTime: boolean = false) => {
+          if (val === undefined || val === null) return '';
+          const s = String(val).trim();
+          
+          // Detect Excel serial time (decimal between 0 and 1)
+          // We apply this if isTime is true OR if it's a very long decimal (likely raw serial)
+          if (/^0\.\d+$/.test(s) && (isTime || s.length > 10)) {
+            const num = parseFloat(s);
+            const totalMinutes = Math.round(num * 24 * 60);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+          }
+          return s;
+        };
+
         let batch = writeBatch(db);
         let count = 0;
 
-        // Skip header line
-        for (let i = 1; i < parsedData.length; i++) {
+        // Start from row 1 if headers detected, otherwise row 0
+        const startRow = hasHeaders ? 1 : 0;
+
+        for (let i = startRow; i < parsedData.length; i++) {
           const row = parsedData[i];
           if (!row || row.length === 0) continue;
 
-          // Map columns based on index (assuming order: COMP, PREFIXO, MODELO, V.CHEG, ETA, V.SAIDA, ICAO, CID, POS, ETD)
-          const comp = String(row[0] || '').trim();
-          const prefixo = String(row[1] || '').trim();
-          const modelo = String(row[2] || '').trim();
-          const vCheg = String(row[3] || '').trim();
-          const eta = String(row[4] || '').trim();
-          const vSaida = String(row[5] || '').trim();
-          const icao = String(row[6] || '').trim();
-          const cid = String(row[7] || '').trim();
-          const pos = String(row[8] || '').trim();
-          const etd = String(row[9] || '').trim();
+          const comp = formatVal(row[getIdx('comp', 0)]);
+          const prefixo = formatVal(row[getIdx('prefixo', 1)]);
+          const modelo = formatVal(row[getIdx('modelo', 2)]);
+          const vCheg = formatVal(row[getIdx('vCheg', 3)]);
+          const eta = formatVal(row[getIdx('eta', 4)], true);
+          const vSaida = formatVal(row[getIdx('vSaida', 5)]);
+          const icao = formatVal(row[getIdx('icao', 6)]);
+          const cid = formatVal(row[getIdx('cid', 7)]);
+          const pos = formatVal(row[getIdx('pos', 8)]);
+          const etd = formatVal(row[getIdx('etd', 9)], true);
 
           // Skip if all fields are empty
-          if (!comp && !prefixo && !vCheg && !vSaida) continue;
+          if (!comp && !prefixo && !vCheg && !vSaida && !eta && !etd) continue;
 
           const newDocRef = doc(collection(db, 'malha_base'));
           batch.set(newDocRef, {
