@@ -214,6 +214,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
           positionId: entry.pos || 'N/A',
           status: FlightStatus.CHEGADA,
           fuelStatus: 0,
+          isMeshFlight: !entry.prefixo || entry.prefixo.trim().toUpperCase() === 'TBD' || !entry.pos || entry.pos.trim().toUpperCase() === 'TBD',
           logs: []
         };
         
@@ -287,7 +288,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors disabled:opacity-50 text-xs font-bold"
           >
             <Check size={14} />
-            {isPopulating ? 'Enviando...' : 'Enviar/Atualizar'}
+            {isPopulating ? 'Enviando...' : 'Gerar Próximo Turno'}
           </button>
           <input
             type="file"

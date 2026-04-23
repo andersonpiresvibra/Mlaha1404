@@ -763,6 +763,10 @@ export const GridOps: React.FC<GridOpsProps> = ({
     }
 
     if (f.status === FlightStatus.CHEGADA) {
+        if (f.isMeshFlight) return {
+            label: 'PND. ALOCAÇÃO',
+            color: isDarkMode ? 'text-slate-400 bg-slate-800 border-slate-600' : 'text-slate-600 bg-slate-200 border-slate-300'
+        };
         if (f.isOnGround && f.positionId) return { 
             label: 'CALÇADA', 
             color: isDarkMode ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-emerald-600 bg-emerald-50 border-emerald-200' 
@@ -1034,7 +1038,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                       <tr 
                           key={row.id} 
                           onClick={() => setSelectedFlight(row)}
-                          className={`h-12 cursor-pointer transition-all active:scale-[0.99] group shadow-sm rounded-[4px] ${isDarkMode ? '' : 'hover:bg-slate-50'}`}
+                          className={`h-12 cursor-pointer transition-all active:scale-[0.99] group shadow-sm rounded-[4px] ${isDarkMode ? '' : 'hover:bg-slate-50'} ${row.isMeshFlight ? 'opacity-60 saturate-50' : ''}`}
                       >
                           {/* AIRLINE */}
                           <td className={`px-3 text-left first:rounded-l-[4px] border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all`}>
@@ -1536,10 +1540,73 @@ export const GridOps: React.FC<GridOpsProps> = ({
           onImport={(file) => {
             setIsLoading(true);
             setIsImportModalOpen(false);
-            setTimeout(() => {
-                setIsLoading(false);
-                addToast(`Arquivo ${file.name} importado com sucesso!`, 'success');
-            }, 1500);
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              try {
+                const data = e.target?.result;
+                const { read, utils } = await import('xlsx');
+                const workbook = read(data, { type: 'binary' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const parsedData = utils.sheet_to_json<any[]>(sheet, { header: 1, raw: false });
+
+                if (parsedData.length > 0) {
+                  const firstRow = (parsedData[0] || []).map((h: any) => String(h || '').toUpperCase().trim());
+                  const hasHeaders = firstRow.some((h: string) => ['COMP', 'PREFIXO', 'MODELO', 'ETA', 'ETD', 'ICAO', 'POS', 'V.CHEG'].some(k => h.includes(k)));
+                  
+                  const colMap = {
+                    prefixo: firstRow.findIndex((h: string) => h.includes('PREFIXO') || h.includes('MATR') || h.includes('REG')),
+                    vCheg: firstRow.findIndex((h: string) => h.includes('V.CHEG') || h.includes('VOO CHEG') || h.includes('FLIGHT IN')),
+                    pos: firstRow.findIndex((h: string) => h.includes('POS') || h.includes('BOX') || h.includes('STAND'))
+                  };
+                  
+                  const getIdx = (key: keyof typeof colMap, defaultIdx: number) => colMap[key] === -1 ? defaultIdx : colMap[key];
+                  
+                  let matchedCount = 0;
+                  const startRow = hasHeaders ? 1 : 0;
+
+                  for (let i = startRow; i < parsedData.length; i++) {
+                    const row = parsedData[i];
+                    if (!row || row.length === 0) continue;
+                    
+                    const vCheg = String(row[getIdx('vCheg', 3)] || '').trim();
+                    const prefixo = String(row[getIdx('prefixo', 1)] || '').trim();
+                    const pos = String(row[getIdx('pos', 8)] || '').trim();
+
+                    if (!vCheg) continue;
+
+                    // Match with existing flights that are mesh flights or missing prefix
+                    const existingFlight = flights.find(f => f.flightNumber === vCheg && (f.isMeshFlight || f.registration === 'N/A' || f.registration === 'TBD' || f.positionId === 'N/A' || f.positionId === 'TBD'));
+
+                    if (existingFlight && (prefixo || pos)) {
+                      onUpdateFlights({
+                        id: existingFlight.id,
+                        registration: prefixo || existingFlight.registration,
+                        positionId: pos || existingFlight.positionId,
+                        isMeshFlight: false,
+                        logs: [...(existingFlight.logs || []), {
+                          id: Math.random().toString(36).substring(7),
+                          timestamp: new Date(),
+                          type: 'SISTEMA',
+                          message: 'Voo enriquecido (Alocação Diária) via importação.',
+                          author: 'SISTEMA'
+                        }]
+                      });
+                      matchedCount++;
+                    }
+                  }
+                  addToast(`${matchedCount} voos alocados com a planilha ${file.name}.`, 'success');
+                } else {
+                  addToast('Planilha vazia ou formato inválido.', 'error');
+                }
+              } catch (error) {
+                console.error('Erro na importação:', error);
+                addToast('Erro ao ler o arquivo XLSX.', 'error');
+              }
+              setIsLoading(false);
+            };
+            reader.readAsBinaryString(file);
           }}
         />
       )}
