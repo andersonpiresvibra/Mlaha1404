@@ -880,10 +880,8 @@ export const GridOps: React.FC<GridOpsProps> = ({
   };
 
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-  const [optionsPortalTarget, setOptionsPortalTarget] = useState<HTMLElement | null>(null);
   useEffect(() => {
     setPortalTarget(document.getElementById('subheader-portal-target'));
-    setOptionsPortalTarget(document.getElementById('header-options-portal-target'));
   }, []);
 
   useEffect(() => {
@@ -904,38 +902,6 @@ export const GridOps: React.FC<GridOpsProps> = ({
     );
   }
 
-  const optionsDropdownItems = (
-    <>
-        <button 
-            onClick={() => {
-                setIsCreateModalOpen(true);
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-indigo-500/10 hover:text-indigo-400' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
-        >
-            <Plus size={14} />
-            Criar Voo
-        </button>
-        <button 
-            onClick={() => {
-                setIsImportModalOpen(true);
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-400' : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'}`}
-        >
-            <Upload size={14} />
-            Importar
-        </button>
-        <button 
-            onClick={() => {
-                if (onOpenShiftOperators) onOpenShiftOperators();
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${isDarkMode ? 'text-slate-300 hover:bg-blue-500/10 hover:text-blue-400' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'}`}
-        >
-            <UserPlus size={14} />
-            Operadores do Turno
-        </button>
-    </>
-  );
-
   const subheaderContent = (
       <div className={`px-6 h-16 shrink-0 flex items-center justify-between border-b ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-[#2C864C] border-white/10'} z-[60] w-full`}>
         <div className="flex items-center gap-6">
@@ -953,7 +919,6 @@ export const GridOps: React.FC<GridOpsProps> = ({
       
       {/* HEADER E TABS */}
       {portalTarget ? createPortal(subheaderContent, portalTarget) : subheaderContent}
-      {optionsPortalTarget ? createPortal(optionsDropdownItems, optionsPortalTarget) : null}
       <div className={`h-12 shrink-0 flex border-b ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-white'} z-30 overflow-hidden`}>
         <nav className="flex w-full">
                 {tabs.map((tab) => {

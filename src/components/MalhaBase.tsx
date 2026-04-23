@@ -8,9 +8,10 @@ import { read, utils } from 'xlsx';
 interface MalhaBaseProps {
   entries: MalhaBaseEntry[];
   onClose: () => void;
+  isDarkMode: boolean;
 }
 
-export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
+export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMode }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isPopulating, setIsPopulating] = useState(false);
@@ -245,7 +246,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
     
     if (isEditing) {
       return (
-        <td className={`px-2 py-1 border-r border-slate-700/50 ${className}`}>
+        <td className={`px-2 py-1 border-r ${isDarkMode ? 'border-slate-800/50' : 'border-slate-200'} ${className}`}>
           <input
             type="text"
             value={editValue}
@@ -253,7 +254,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
             onBlur={handleSaveEdit}
             onKeyDown={handleKeyDown}
             autoFocus
-            className="w-full bg-slate-900 border border-emerald-500 text-white px-1 py-0.5 rounded text-xs outline-none"
+            className={`w-full border px-1 py-0.5 rounded text-xs outline-none ${isDarkMode ? 'bg-slate-900 border-emerald-500 text-white' : 'bg-white border-emerald-600 text-slate-900'}`}
           />
         </td>
       );
@@ -261,7 +262,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
 
     return (
       <td 
-        className={`px-4 py-2 border-r border-slate-700/50 cursor-pointer hover:bg-slate-600/50 transition-colors ${className}`}
+        className={`px-4 py-2 border-r cursor-pointer transition-colors ${isDarkMode ? 'border-slate-800/50 hover:bg-slate-700/50' : 'border-slate-200 hover:bg-emerald-50'} ${className}`}
         onClick={() => handleEditClick(entry.id, field, String(entry[field] || ''))}
       >
         {entry[field]}
@@ -270,10 +271,16 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 text-slate-200">
-      <div className="flex items-center justify-between p-3 border-b border-slate-800">
-        <h2 className="text-lg font-bold text-white">Malha Base</h2>
-        <div className="flex gap-2">
+    <div className={`flex flex-col h-full ${isDarkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+      <div className={`px-6 h-16 shrink-0 flex items-center justify-between border-b ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-[#2C864C] border-white/10'} z-[60] w-full`}>
+        <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+                <div>
+                  <h2 className="text-sm font-black text-white tracking-tighter uppercase leading-none">Malha Base</h2>
+                </div>
+            </div>
+        </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={handlePopulateAttendance}
             disabled={isPopulating || isUploading || entries.length === 0}
@@ -307,48 +314,48 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
           </button>
           <button
             onClick={onClose}
-            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors text-xs"
+            className={`px-3 py-1.5 rounded transition-colors text-xs font-bold ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-white' : 'bg-white/20 hover:bg-white/30 text-white'}`}
           >
             Voltar
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-3">
-        <div className="bg-slate-800 rounded shadow overflow-hidden border border-slate-700">
+      <div className="flex-1 overflow-auto p-4">
+        <div className={`rounded-xl shadow-lg overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-slate-800/60' : 'bg-white border-slate-200'}`}>
           <table className="w-full text-xs text-left border-collapse">
-            <thead className="text-[10px] text-slate-400 uppercase bg-slate-900/50 border-b border-slate-700">
+            <thead className={`text-[10px] uppercase border-b ${isDarkMode ? 'text-slate-400 bg-slate-800/50 border-slate-700' : 'text-slate-500 bg-[#359d59] text-white border-[#2C864C]'}`}>
               <tr>
-                <th className="px-3 py-2 border-r border-slate-700">COMP</th>
-                <th className="px-3 py-2 border-r border-slate-700">PREFIXO</th>
-                <th className="px-3 py-2 border-r border-slate-700">MODELO</th>
-                <th className="px-3 py-2 border-r border-slate-700">V.CHEG</th>
-                <th className="px-3 py-2 border-r border-slate-700">ETA</th>
-                <th className="px-3 py-2 border-r border-slate-700">V.SAÍDA</th>
-                <th className="px-3 py-2 border-r border-slate-700">ICAO</th>
-                <th className="px-3 py-2 border-r border-slate-700">CID</th>
-                <th className="px-3 py-2 border-r border-slate-700">POS</th>
-                <th className="px-3 py-2 border-r border-slate-700">ETD</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>COMP</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>PREFIXO</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>MODELO</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>V.CHEG</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>ETA</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>V.SAÍDA</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>ICAO</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>CID</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>POS</th>
+                <th className={`px-3 py-2 border-r ${isDarkMode ? 'border-slate-700' : 'border-white/20'}`}>ETD</th>
                 <th className="px-3 py-2 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <tr key={entry.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                <tr key={entry.id} className={`border-b ${isDarkMode ? 'border-slate-800 hover:bg-slate-800/50 text-slate-300' : 'border-slate-100 hover:bg-slate-50 text-slate-600'}`}>
                   {renderCell(entry, 'comp', 'px-3')}
-                  {renderCell(entry, 'prefixo', 'px-3 font-mono text-blue-400')}
+                  {renderCell(entry, 'prefixo', `px-3 font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`)}
                   {renderCell(entry, 'modelo', 'px-3')}
                   {renderCell(entry, 'vCheg', 'px-3 font-mono')}
-                  {renderCell(entry, 'eta', 'px-3 font-mono text-amber-400')}
+                  {renderCell(entry, 'eta', `px-3 font-mono ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`)}
                   {renderCell(entry, 'vSaida', 'px-3 font-mono')}
                   {renderCell(entry, 'icao', 'px-3')}
                   {renderCell(entry, 'cid', 'px-3')}
-                  {renderCell(entry, 'pos', 'px-3 font-bold')}
-                  {renderCell(entry, 'etd', 'px-3 font-mono text-emerald-400')}
+                  {renderCell(entry, 'pos', `px-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`)}
+                  {renderCell(entry, 'etd', `px-3 font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`)}
                   <td className="px-3 py-1.5 text-right">
                     <button
                       onClick={() => handleDelete(entry.id)}
-                      className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors"
+                      className={`p-1 rounded transition-colors ${isDarkMode ? 'text-red-400 hover:bg-red-400/10 hover:text-red-300' : 'text-red-500 hover:bg-red-50 hover:text-red-600'}`}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -357,7 +364,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose }) => {
               ))}
               {entries.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-3 py-6 text-center text-slate-500">
+                  <td colSpan={11} className={`px-3 py-8 text-center ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                     Nenhum dado na malha base. Importe um arquivo para começar.
                   </td>
                 </tr>

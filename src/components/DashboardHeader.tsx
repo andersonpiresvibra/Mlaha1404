@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, User, Edit2, Maximize, Minimize, Plane, Search, RefreshCw, X, Settings } from 'lucide-react';
+import { Sun, Moon, User, Edit2, Maximize, Minimize, Plane, Search, RefreshCw, X, Settings, Plus, UserPlus } from 'lucide-react';
 
 import { ViewState } from '../types';
 
@@ -13,6 +13,8 @@ interface DashboardHeaderProps {
   onSync: () => void;
   currentView?: ViewState;
   onViewChange?: (view: ViewState) => void;
+  onOpenCreateFlight?: () => void;
+  onOpenShiftOperators?: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
@@ -24,7 +26,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   setGlobalSearchTerm,
   onSync,
   currentView,
-  onViewChange
+  onViewChange,
+  onOpenCreateFlight,
+  onOpenShiftOperators
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [editingField, setEditingField] = useState<'density' | 'temperature' | null>(null);
@@ -227,6 +231,20 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                  >
                    <Plane size={14} />
                    Malha Base
+                 </button>
+                 <button 
+                   onClick={() => { onOpenCreateFlight?.(); setShowOptions(false); }}
+                   className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-200 hover:bg-slate-700 rounded-md transition-colors uppercase tracking-wider"
+                 >
+                   <Plus size={14} />
+                   Criar Voo
+                 </button>
+                 <button 
+                   onClick={() => { onOpenShiftOperators?.(); setShowOptions(false); }}
+                   className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-200 hover:bg-slate-700 rounded-md transition-colors uppercase tracking-wider"
+                 >
+                   <UserPlus size={14} />
+                   Operadores do Turno
                  </button>
                  <div id="header-options-portal-target"></div>
               </div>

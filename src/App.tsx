@@ -899,6 +899,8 @@ const App: React.FC = () => {
         onSync={handleSync}
         currentView={view}
         onViewChange={setView}
+        onOpenCreateFlight={() => setPendingAction('CREATE')}
+        onOpenShiftOperators={() => setView('SHIFT_OPERATORS')}
       />
       
       <div id="subheader-portal-target" className="w-full shrink-0 z-[60] relative"></div>
@@ -947,6 +949,7 @@ const App: React.FC = () => {
                   <MalhaBase 
                     entries={globalMalhaBase}
                     onClose={() => setView('GRID_OPS')}
+                    isDarkMode={isDarkMode}
                   />
                 )}
               </Suspense>
