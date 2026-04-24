@@ -127,6 +127,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
           if (!comp && !prefixo && !vCheg && !vSaida && !eta && !etd) continue;
 
           batch.push({
+            id: crypto.randomUUID(),
             comp,
             prefixo,
             modelo,
