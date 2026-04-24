@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, User, Edit2, Maximize, Minimize, Plane, Search, RefreshCw, X, Settings, Plus, UserPlus } from 'lucide-react';
+import { Sun, Moon, User, Edit2, Maximize, Minimize, Plane, Search, RefreshCw, X, Settings, Plus, UserPlus, Database } from 'lucide-react';
 
 import { ViewState } from '../types';
 
@@ -15,6 +15,7 @@ interface DashboardHeaderProps {
   onViewChange?: (view: ViewState) => void;
   onOpenCreateFlight?: () => void;
   onOpenShiftOperators?: () => void;
+  onOpenDatabaseSettings?: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
@@ -28,7 +29,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   currentView,
   onViewChange,
   onOpenCreateFlight,
-  onOpenShiftOperators
+  onOpenShiftOperators,
+  onOpenDatabaseSettings
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [editingField, setEditingField] = useState<'density' | 'temperature' | null>(null);
@@ -245,6 +247,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                  >
                    <UserPlus size={14} />
                    Operadores do Turno
+                 </button>
+                 <div className="w-full h-px bg-slate-700 my-1"></div>
+                 <button 
+                   onClick={() => { onOpenDatabaseSettings?.(); setShowOptions(false); }}
+                   className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-emerald-400 hover:bg-slate-700 rounded-md transition-colors uppercase tracking-wider"
+                 >
+                   <Database size={14} />
+                   Conexões e Banco
                  </button>
                  <div id="header-options-portal-target"></div>
               </div>

@@ -2,8 +2,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FlightStatus, FlightData, FlightLog, LogType, OperatorProfile, Vehicle, Airline, AircraftDatabaseEntry } from '../types';
-import { db } from '../firebase';
-import { doc, addDoc, collection, deleteDoc } from 'firebase/firestore';
 
 import { FlightDetailsModal } from './FlightDetailsModal';
 import { StatusBadge } from './SharedStats';
