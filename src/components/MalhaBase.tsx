@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { MalhaBaseEntry, FlightData, FlightStatus } from '../types';
 import { Upload, Trash2, Plus, Save, Play, Check } from 'lucide-react';
-import { getSupabaseClient } from '../supabase';
+import { db } from '../firebase';
+import { collection, addDoc, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
 import { read, utils } from 'xlsx';
 
 interface MalhaBaseProps {
@@ -26,11 +27,9 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
     if (!editingCell) return;
     
     try {
-      const supabase = getSupabaseClient();
-      if (!supabase) return;
-      await supabase.from('malha_base').update({
+      await updateDoc(doc(db, 'malha_base', editingCell.id), {
         [editingCell.field]: editValue
-      }).eq('id', editingCell.id);
+      });
     } catch (error) {
       console.error("Erro ao atualizar célula:", error);
     } finally {
@@ -99,10 +98,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
           return s;
         };
 
-        const supabase = getSupabaseClient();
-        if (!supabase) return;
-
-        let batch: any[] = [];
+        let batch = writeBatch(db);
         let count = 0;
 
         // Start from row 1 if headers detected, otherwise row 0
@@ -126,8 +122,8 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
           // Skip if all fields are empty
           if (!comp && !prefixo && !vCheg && !vSaida && !eta && !etd) continue;
 
-          batch.push({
-            id: crypto.randomUUID(),
+          const newDocRef = doc(collection(db, 'malha_base'));
+          batch.set(newDocRef, {
             comp,
             prefixo,
             modelo,
@@ -142,14 +138,14 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
           count++;
 
           if (count >= 400) {
-            await supabase.from('malha_base').insert(batch);
-            batch = [];
+            await batch.commit();
+            batch = writeBatch(db);
             count = 0;
           }
         }
 
         if (count > 0) {
-          await supabase.from('malha_base').insert(batch);
+          await batch.commit();
         }
       } catch (error) {
         console.error("Erro ao processar arquivo:", error);
@@ -166,9 +162,7 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
 
   const handleDelete = async (id: string) => {
     try {
-      const supabase = getSupabaseClient();
-      if (!supabase) return;
-      await supabase.from('malha_base').delete().eq('id', id);
+      await deleteDoc(doc(db, 'malha_base', id));
     } catch (error) {
       console.error("Erro ao excluir linha:", error);
     }
@@ -176,16 +170,20 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
 
   const handleClearAll = async () => {
     setIsUploading(true);
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
     try {
-      const ids = entries.map(e => e.id);
-      if (ids.length === 0) return;
-      
-      // Delete in chunks of 100 to avoid long query strings
-      for (let i = 0; i < ids.length; i += 100) {
-        const chunk = ids.slice(i, i + 100);
-        await supabase.from('malha_base').delete().in('id', chunk);
+      let batch = writeBatch(db);
+      let count = 0;
+      for (const entry of entries) {
+        batch.delete(doc(db, 'malha_base', entry.id));
+        count++;
+        if (count >= 400) {
+          await batch.commit();
+          batch = writeBatch(db);
+          count = 0;
+        }
+      }
+      if (count > 0) {
+        await batch.commit();
       }
     } catch (error) {
       console.error("Erro ao limpar malha base:", error);
@@ -196,14 +194,13 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
 
   const handlePopulateAttendance = async () => {
     setIsPopulating(true);
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
     try {
-      let batch: any[] = [];
+      let batch = writeBatch(db);
       let count = 0;
       
       for (const entry of entries) {
-        batch.push({
+        const newFlightRef = doc(collection(db, 'flights'));
+        const flightData: Partial<FlightData> = {
           flightNumber: entry.vCheg || 'N/A',
           departureFlightNumber: entry.vSaida || '',
           airline: entry.comp || 'N/A',
@@ -217,19 +214,22 @@ export const MalhaBase: React.FC<MalhaBaseProps> = ({ entries, onClose, isDarkMo
           positionId: entry.pos || 'N/A',
           status: FlightStatus.CHEGADA,
           fuelStatus: 0,
-          isMeshFlight: !entry.prefixo || entry.prefixo.trim().toUpperCase() === 'TBD' || !entry.pos || entry.pos.trim().toUpperCase() === 'TBD'
-        });
+          isMeshFlight: !entry.prefixo || entry.prefixo.trim().toUpperCase() === 'TBD' || !entry.pos || entry.pos.trim().toUpperCase() === 'TBD',
+          logs: []
+        };
+        
+        batch.set(newFlightRef, flightData);
         count++;
         
         if (count >= 400) {
-          await supabase.from('flights').insert(batch);
-          batch = [];
+          await batch.commit();
+          batch = writeBatch(db);
           count = 0;
         }
       }
       
       if (count > 0) {
-        await supabase.from('flights').insert(batch);
+        await batch.commit();
       }
       
       alert('Dados enviados com sucesso!');

@@ -2,7 +2,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FlightStatus, FlightData, FlightLog, LogType, OperatorProfile, Vehicle, Airline, AircraftDatabaseEntry } from '../types';
+import { db } from '../firebase';
+import { doc, addDoc, collection, deleteDoc } from 'firebase/firestore';
 
+import { FlightDetailsModal } from './FlightDetailsModal';
 import { StatusBadge } from './SharedStats';
 import { OperatorCell } from './OperatorCell';
 import { AirlineLogo } from './AirlineLogo';
@@ -189,55 +192,17 @@ export const GridOps: React.FC<GridOpsProps> = ({
       }
   }, [initialTab]);
 
-  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
-  const [editingCell, setEditingCell] = useState<{ id: string, field: keyof FlightData } | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [selectedFlight, setSelectedFlight] = useState<FlightData | null>(null);
 
-  const handleDoubleClick = (id: string, field: keyof FlightData, value: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingCell({ id, field });
-    setEditValue(value || '');
-  };
-
-  const handleSaveCell = async (id: string, field: keyof FlightData) => {
-    if (editingCell?.id === id && editingCell?.field === field) {
-      if (editValue !== undefined) {
-         try {
-           await onUpdateFlights({ id, [field]: editValue });
-         } catch(e) {}
+  // Keep selectedFlight in sync with global flights
+  useEffect(() => {
+      if (selectedFlight) {
+          const updated = flights.find(f => f.id === selectedFlight.id);
+          if (updated && JSON.stringify(updated) !== JSON.stringify(selectedFlight)) {
+              setSelectedFlight(updated);
+          }
       }
-      setEditingCell(null);
-    }
-  };
-
-  const renderCell = (row: FlightData, field: keyof FlightData, defaultContent: any) => {
-    const isEditing = editingCell?.id === row.id && editingCell?.field === field;
-    if (isEditing) {
-      return (
-        <input
-          autoFocus
-          className="w-[calc(100%-4px)] text-center bg-slate-800 text-white border border-blue-500 rounded px-1 -mx-0.5 my-[-2px] outline-none font-mono text-[11px]"
-          value={editValue}
-          onChange={e => setEditValue(e.target.value.toUpperCase())}
-          onKeyDown={e => {
-            if (e.key === 'Enter') handleSaveCell(row.id, field);
-            if (e.key === 'Escape') setEditingCell(null);
-          }}
-          onBlur={() => handleSaveCell(row.id, field)}
-          onClick={e => e.stopPropagation()}
-          onDoubleClick={e => e.stopPropagation()}
-        />
-      );
-    }
-    return (
-      <div 
-        className="w-full h-full min-h-[16px] cursor-text flex items-center justify-center text-inherit" 
-        onDoubleClick={(e) => handleDoubleClick(row.id, field, (row[field] as string) || '', e)}
-      >
-        {defaultContent}
-      </div>
-    );
-  };
+  }, [flights, selectedFlight]);
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: null });
   
@@ -1072,7 +1037,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                       return (
                       <tr 
                           key={row.id} 
-                          onClick={() => setSelectedRowId(row.id)}
+                          onClick={() => setSelectedFlight(row)}
                           className={`h-12 cursor-pointer transition-all active:scale-[0.99] group shadow-sm rounded-[4px] ${isDarkMode ? '' : 'hover:bg-slate-50'} ${row.isMeshFlight ? 'opacity-60 saturate-50' : ''}`}
                       >
                           {/* AIRLINE */}
@@ -1084,7 +1049,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                           {isStreamlinedView ? (
                             <>
                                 {/* FLIGHT OUT */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{renderCell(row, 'departureFlightNumber', row.departureFlightNumber || '--')}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{row.departureFlightNumber || '--'}</td>
 
                                 {/* ICAO */}
                                 <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 font-bold text-[10px]`}>
@@ -1097,7 +1062,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 </td>
 
                                 {/* REGISTRATION */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 tracking-tighter uppercase`}>{renderCell(row, 'registration', row.registration)}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 tracking-tighter uppercase`}>{row.registration}</td>
 
                                 {/* POSITION */}
                                 <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center`}>
@@ -1116,7 +1081,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 </td>
 
                                 {/* ETD */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{renderCell(row, 'etd', row.etd)}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{row.etd}</td>
 
                                 {/* OPERATOR (WITH ASSIGN BUTTON) */}
                                 <td className={`px-3 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all truncate`}>
@@ -1155,10 +1120,10 @@ export const GridOps: React.FC<GridOpsProps> = ({
                           ) : isFinishedView ? (
                             <>
                                 {/* REGISTRATION */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 tracking-tighter uppercase`}>{renderCell(row, 'registration', row.registration)}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 tracking-tighter uppercase`}>{row.registration}</td>
 
                                 {/* FLIGHT OUT */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{renderCell(row, 'departureFlightNumber', row.departureFlightNumber || '--')}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{row.departureFlightNumber || '--'}</td>
 
                                 {/* ICAO */}
                                 <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 font-bold text-[10px]`}>
@@ -1187,7 +1152,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 </td>
 
                                 {/* ETD */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{renderCell(row, 'etd', row.etd)}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{row.etd}</td>
                                 
                                 {/* OPERATOR (WITH ASSIGN BUTTON & MESSAGE DOT) */}
                                 <td className={`px-3 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all truncate`}>
@@ -1219,7 +1184,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                           ) : (
                             <>
                                 {/* REGISTRATION */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 tracking-tighter uppercase`}>{renderCell(row, 'registration', row.registration)}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 tracking-tighter uppercase`}>{row.registration}</td>
 
                                 {/* MODEL */}
                                 <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} font-mono text-[10px] font-bold`}>
@@ -1227,7 +1192,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 </td>
 
                                 {/* FLIGHT IN */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{renderCell(row, 'flightNumber', row.flightNumber)}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{row.flightNumber}</td>
 
                                 {/* ETA (POUSO ESTIMADO) */}
                                 <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1235,7 +1200,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 </td>
 
                                 {/* FLIGHT OUT */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{renderCell(row, 'departureFlightNumber', row.departureFlightNumber || '--')}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center ${isDarkMode ? 'text-white' : 'text-slate-900'} font-mono tracking-tighter`}>{row.departureFlightNumber || '--'}</td>
 
                                 {/* ICAO */}
                                 <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono text-emerald-500 font-bold text-[10px]`}>
@@ -1264,7 +1229,7 @@ export const GridOps: React.FC<GridOpsProps> = ({
                                 </td>
 
                                 {/* ETD */}
-                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{renderCell(row, 'etd', row.etd)}</td>
+                                <td className={`px-2 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all text-center font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{row.etd}</td>
 
                                 {/* OPERATOR (WITH ASSIGN BUTTON) */}
                                 <td className={`px-3 border-y border-l ${isDarkMode ? 'border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-slate-900/80 group-hover:from-slate-700 group-hover:to-slate-800' : 'border-slate-200 bg-white group-hover:bg-slate-50'} transition-all truncate`}>
@@ -1498,7 +1463,16 @@ export const GridOps: React.FC<GridOpsProps> = ({
           ))}
       </div>
 
-      
+      {selectedFlight && (
+        <FlightDetailsModal 
+          flight={selectedFlight} 
+          onClose={() => setSelectedFlight(null)} 
+          onUpdate={(updatedFlight) => onUpdateFlights(updatedFlight)}
+          vehicles={vehicles}
+          operators={operators}
+          onOpenAssignSupport={(flight) => setAssignSupportModalFlight(flight)}
+        />
+      )}
 
 
       {/* Observation Modal */}
